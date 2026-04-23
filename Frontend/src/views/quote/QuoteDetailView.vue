@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { useQuoteStore } from '@/stores/quoteStore'
 import { QUOTE_STATUS, getEnumLabel, getEnumTagType } from '@/utils/enums'
@@ -27,14 +27,6 @@ function submitApproval() {
   ElMessage.success('已提交审批')
 }
 
-function generateOrder() {
-  ElMessageBox.alert(
-    '此处将调用"报价转订单"接口，生成订单后跳转到订单详情。\n该功能由前端 C（订单中心）负责实现。',
-    '功能提示',
-    { type: 'info' },
-  )
-}
-
 function goApprove() {
   router.push(`/quotes/${quote.value.id}/approve`)
 }
@@ -54,9 +46,6 @@ function goApprove() {
         <el-button v-if="quote.status === 'DRAFT'" @click="submitApproval">提交审批</el-button>
         <el-button v-if="quote.status === 'WAIT_APPROVAL'" type="warning" @click="goApprove">
           前往审批
-        </el-button>
-        <el-button v-if="quote.status === 'APPROVED'" type="success" @click="generateOrder">
-          生成订单
         </el-button>
         <el-button type="primary" :disabled="quote.status === 'VOID'" @click="goEdit">
           编辑
