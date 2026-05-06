@@ -1,18 +1,19 @@
 package com.yourcompany.sales.modules.stock.controller;
 
-import java.util.List;
-
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.yourcompany.sales.common.dto.PageResponse;
 import com.yourcompany.sales.common.result.Result;
-import com.yourcompany.sales.modules.stock.DTO.ReturnRequest;
-import com.yourcompany.sales.modules.stock.DTO.StockLockRequest;
-import com.yourcompany.sales.modules.stock.entity.InventoryStock;
+import com.yourcompany.sales.modules.stock.dto.StockDetailResponse;
+import com.yourcompany.sales.modules.stock.dto.StockLockRequest;
+import com.yourcompany.sales.modules.stock.dto.StockQueryRequest;
+import com.yourcompany.sales.modules.stock.dto.StockReleaseRequest;
+import com.yourcompany.sales.modules.stock.dto.StockResponse;
 import com.yourcompany.sales.modules.stock.service.StockService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,8 +26,13 @@ public class StockController {
     private final StockService stockService;
 
     @GetMapping
-    public Result<List<InventoryStock>> list(@RequestParam(required = false) Long skuId) {
-        return Result.success(stockService.list(skuId));
+    public Result<PageResponse<StockResponse>> list(StockQueryRequest req) {
+        return Result.success(stockService.pageStocks(req));
+    }
+
+    @GetMapping("/{id}")
+    public Result<StockDetailResponse> detail(@PathVariable Long id) {
+        return Result.success(stockService.getStockDetail(id));
     }
 
     @PostMapping("/lock")
@@ -36,14 +42,8 @@ public class StockController {
     }
 
     @PostMapping("/release")
-    public Result<Void> release(@RequestParam Long orderId) {
-        stockService.releaseStock(orderId);
-        return Result.success();
-    }
-
-    @PostMapping("/return")
-    public Result<Void> returnInbound(@RequestBody ReturnRequest req) {
-        stockService.returnInbound(req);
+    public Result<Void> release(@RequestBody StockReleaseRequest req) {
+        stockService.releaseStock(req);
         return Result.success();
     }
 }

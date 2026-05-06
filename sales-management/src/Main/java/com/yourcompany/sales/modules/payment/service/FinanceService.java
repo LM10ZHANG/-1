@@ -1,35 +1,36 @@
 package com.yourcompany.sales.modules.payment.service;
 
-import java.util.List;
-
-import com.yourcompany.sales.modules.payment.DTO.InvoiceRequest;
-import com.yourcompany.sales.modules.payment.DTO.InvoiceResponse;
-import com.yourcompany.sales.modules.payment.DTO.PaymentRequest;
-import com.yourcompany.sales.modules.payment.DTO.ReceivableResponse;
-import com.yourcompany.sales.modules.payment.DTO.RefundRequest;
-import com.yourcompany.sales.modules.payment.entity.PaymentRecord;
-import com.yourcompany.sales.modules.payment.entity.RefundRecord;
+import com.yourcompany.sales.common.dto.PageResponse;
+import com.yourcompany.sales.modules.payment.dto.InvoiceRequest;
+import com.yourcompany.sales.modules.payment.dto.InvoiceResponse;
+import com.yourcompany.sales.modules.payment.dto.InvoiceQueryRequest;
+import com.yourcompany.sales.modules.payment.dto.PaymentQueryRequest;
+import com.yourcompany.sales.modules.payment.dto.PaymentRequest;
+import com.yourcompany.sales.modules.payment.dto.PaymentResponse;
+import com.yourcompany.sales.modules.payment.dto.ReceivableQueryRequest;
+import com.yourcompany.sales.modules.payment.dto.ReceivableResponse;
+import com.yourcompany.sales.modules.payment.dto.RefundQueryRequest;
+import com.yourcompany.sales.modules.payment.dto.RefundRequest;
+import com.yourcompany.sales.modules.payment.dto.RefundResponse;
 
 public interface FinanceService {
 
-        void createPayment(PaymentRequest req);
+    void createPayment(PaymentRequest req);
 
-        ReceivableResponse getReceivable(Long orderId);
+    PageResponse<PaymentResponse> pagePayments(PaymentQueryRequest req);
 
-        void createInvoice(InvoiceRequest req);
+    PageResponse<ReceivableResponse> pageReceivables(ReceivableQueryRequest req);
 
-        List<PaymentRecord> getPayments(Long orderId);
+    void createInvoice(InvoiceRequest req);
 
-        List<ReceivableResponse> getReceivables();
+    PageResponse<InvoiceResponse> pageInvoices(InvoiceQueryRequest req);
 
-        List<InvoiceResponse> getInvoices(Long orderId);
-        
-        void createRefund(RefundRequest req);
+    void createRefund(RefundRequest req);
 
-        void finishRefund(Long refundId);
+    void finishRefund(Long refundId);
 
-        void rejectRefund(Long refundId);
+    void rejectRefund(Long refundId);
 
-        List<RefundRecord> getRefunds(Long orderId);
+    PageResponse<RefundResponse> pageRefunds(RefundQueryRequest req);
 
 }

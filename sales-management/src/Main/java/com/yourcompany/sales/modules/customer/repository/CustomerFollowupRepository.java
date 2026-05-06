@@ -1,6 +1,9 @@
 package com.yourcompany.sales.modules.customer.repository;
 
 import com.yourcompany.sales.modules.customer.entity.CustomerFollowup;
+
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +17,7 @@ public interface CustomerFollowupRepository extends JpaRepository<CustomerFollow
 
     Page<CustomerFollowup> findByCustomerIdAndDeletedFlagOrderByCreatedAtDesc(
             Long customerId, Integer deletedFlag, Pageable pageable);
+
+    Optional<CustomerFollowup> findTopByCustomerIdAndDeletedFlagOrderByCreatedAtDesc(
+            Long customerId, Integer deletedFlag);
 }

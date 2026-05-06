@@ -1,23 +1,18 @@
 package com.yourcompany.sales.modules.dashboard.controller;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.yourcompany.sales.common.dto.ApiResponse;
-import com.yourcompany.sales.modules.dashboard.DTO.DashboardWarningsVO;
-import com.yourcompany.sales.modules.dashboard.DTO.OverviewVO;
-import com.yourcompany.sales.modules.dashboard.DTO.ProductRankingVO;
-import com.yourcompany.sales.modules.dashboard.DTO.SalesTrendVO;
+import com.yourcompany.sales.common.dto.PageResponse;
+import com.yourcompany.sales.modules.dashboard.dto.DashboardOverviewVO;
+import com.yourcompany.sales.modules.dashboard.dto.DashboardQuery;
+import com.yourcompany.sales.modules.dashboard.dto.DashboardWarningsVO;
+import com.yourcompany.sales.modules.dashboard.dto.RankingItemVO;
+import com.yourcompany.sales.modules.dashboard.enums.RankingType;
 import com.yourcompany.sales.modules.dashboard.service.DashboardService;
-import com.yourcompany.sales.modules.order.dto.OrderResponse;
-import com.yourcompany.sales.modules.stock.entity.InventoryStock;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,38 +24,23 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/overview")
-    public ApiResponse<OverviewVO> overview(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
-        return ApiResponse.success(dashboardService.getOverview(start, end));
+    public ApiResponse<DashboardOverviewVO> overview(DashboardQuery query) {
+        return ApiResponse.success(dashboardService.getOverview(query));
     }
 
     @GetMapping("/rankings")
-    public ApiResponse<List<ProductRankingVO>> rankings(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
-        return ApiResponse.success(dashboardService.getProductRanking(start, end));
+    public ApiResponse<PageResponse<RankingItemVO>> rankings(
+            DashboardQuery query,
+            @RequestParam RankingType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(dashboardService.getRankings(query, type, page, size));
     }
 
     @GetMapping("/warnings")
-    public ApiResponse<DashboardWarningsVO> warnings() {
-        return ApiResponse.success(dashboardService.getWarnings());
-    }
-
-    @GetMapping("/warnings/low-stock")
-    public ApiResponse<List<InventoryStock>> lowStockWarnings() {
-        return ApiResponse.success(dashboardService.getLowStockWarnings());
-    }
-
-    @GetMapping("/warnings/overdue-payments")
-    public ApiResponse<List<OrderResponse>> overduePayments() {
-        return ApiResponse.success(dashboardService.getOverduePayments());
-    }
-
-    @GetMapping("/sales-trend")
-    public ApiResponse<List<SalesTrendVO>> salesTrend(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        return ApiResponse.success(dashboardService.getSalesTrend(start, end));
+    public ApiResponse<DashboardWarningsVO> warnings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(dashboardService.getWarnings(page, size));
     }
 }

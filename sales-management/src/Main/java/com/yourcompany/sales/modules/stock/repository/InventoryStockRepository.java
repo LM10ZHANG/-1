@@ -1,6 +1,7 @@
 package com.yourcompany.sales.modules.stock.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import com.yourcompany.sales.modules.stock.entity.InventoryStock;
 
@@ -15,4 +16,12 @@ public interface InventoryStockRepository
     List<InventoryStock> findByAvailableQtyLessThanEqual(Integer warnQty);
 
     List<InventoryStock> findBySkuId(Long skuId);
+
+    @Query("""
+            select s
+            from InventoryStock s
+            where s.availableQty <= s.warnQty
+            order by s.availableQty asc, s.updatedAt asc
+            """)
+    List<InventoryStock> findLowStockWarnings();
 }

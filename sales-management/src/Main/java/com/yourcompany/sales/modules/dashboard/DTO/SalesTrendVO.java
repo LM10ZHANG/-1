@@ -1,4 +1,4 @@
-package com.yourcompany.sales.modules.dashboard.DTO;
+package com.yourcompany.sales.modules.dashboard.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

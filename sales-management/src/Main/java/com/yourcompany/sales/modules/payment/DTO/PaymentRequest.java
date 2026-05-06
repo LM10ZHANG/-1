@@ -1,6 +1,7 @@
-package com.yourcompany.sales.modules.payment.DTO;
+package com.yourcompany.sales.modules.payment.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class PaymentRequest {
 
     private BigDecimal payAmount;
     private String payMethod;
+    private LocalDateTime payTime;
 
     private String voucherUrl;
     private Long operatorUserId;

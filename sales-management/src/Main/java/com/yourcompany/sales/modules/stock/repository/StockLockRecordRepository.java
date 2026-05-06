@@ -13,7 +13,7 @@ public interface StockLockRecordRepository
 
     List<StockLockRecord> findByOrderIdAndSkuId(Long orderId, Long skuId);
 
-    void deleteByOrderId(Long orderId);
+    List<StockLockRecord> findByOrderIdAndOrderItemId(Long orderId, Long orderItemId);
 
-    void deleteByOrderIdAndSkuId(Long orderId, Long skuId);
+    void deleteByOrderId(Long orderId);
 }

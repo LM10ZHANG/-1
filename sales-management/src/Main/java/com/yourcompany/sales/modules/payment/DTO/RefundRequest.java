@@ -1,6 +1,7 @@
-package com.yourcompany.sales.modules.payment.DTO;
+package com.yourcompany.sales.modules.payment.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.Data;
 
@@ -12,4 +13,5 @@ public class RefundRequest {
 
     private BigDecimal refundAmount;
     private String refundReason;
+    private LocalDateTime refundTime;
 }

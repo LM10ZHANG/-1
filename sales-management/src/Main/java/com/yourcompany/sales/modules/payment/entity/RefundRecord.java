@@ -34,4 +34,5 @@ public class RefundRecord {
     private String status; // WAIT / FINISHED / REJECTED
 
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

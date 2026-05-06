@@ -1,5 +1,7 @@
 package com.yourcompany.sales.modules.stock.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,7 +19,12 @@ public class StockLockRecord {
     private Long id;
 
     private Long orderId;
+    private Long orderItemId;
     private Long warehouseId;
     private Long skuId;
     private Integer quantity;
+    private String remark;
+    private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

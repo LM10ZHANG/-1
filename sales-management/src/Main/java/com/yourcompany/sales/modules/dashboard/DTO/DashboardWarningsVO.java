@@ -1,17 +1,13 @@
-package com.yourcompany.sales.modules.dashboard.DTO;
+package com.yourcompany.sales.modules.dashboard.dto;
 
 import java.util.List;
-
-import com.yourcompany.sales.modules.dashboard.entity.NotificationMessage;
-import com.yourcompany.sales.modules.order.dto.OrderResponse;
-import com.yourcompany.sales.modules.stock.entity.InventoryStock;
 
 import lombok.Data;
 
 @Data
 public class DashboardWarningsVO {
 
-    private List<InventoryStock> lowStockWarnings;
-    private List<OrderResponse> overduePayments;
-    private List<NotificationMessage> unreadMessages;
+    private List<WarningItemVO> overdueFollowCustomers;
+    private List<WarningItemVO> lowStockWarnings;
+    private List<WarningItemVO> overdueReceivables;
 }
