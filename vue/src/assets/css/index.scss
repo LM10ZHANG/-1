@@ -1,0 +1,7 @@
+@forward "element-plus/theme-chalk/src/common/var.scss" with ($colors: (
+    "primary": ("base": #4caf50),  // 【修改】原蓝色改为绿色
+    "success": ("base": #239113),
+    "warning": ("base": #F9B44C),
+    "danger": ("base": #F64848),
+    "info": ("base": #81c784),      // 【可选修改】原紫蓝色改为浅绿色或灰色，避免撞色
+));

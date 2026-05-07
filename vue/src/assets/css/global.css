@@ -1,0 +1,21 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+a {
+    color: #4caf50;   /* 【修改】原蓝色 #1967e3 改为与上面一致的绿色 */
+    text-decoration: none;
+}
+
+.card {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,.1);
+}
