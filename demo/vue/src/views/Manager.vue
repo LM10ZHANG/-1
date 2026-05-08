@@ -47,6 +47,17 @@
             <el-menu-item index="/teacher"><el-icon><User /></el-icon><span>销售经理信息</span></el-menu-item>
             <el-menu-item index="/student"><el-icon><User /></el-icon><span>销售员信息</span></el-menu-item>
           </el-sub-menu>
+          <el-sub-menu index="fb-biz">
+            <template #title>
+              <el-icon><Briefcase /></el-icon>
+              <span>业务中心</span>
+            </template>
+            <el-menu-item index="/customers"><el-icon><UserFilled /></el-icon><span>客户中心</span></el-menu-item>
+            <el-menu-item index="/products/spu"><el-icon><Goods /></el-icon><span>商品 SPU</span></el-menu-item>
+            <el-menu-item index="/products/sku"><el-icon><Box /></el-icon><span>商品 SKU</span></el-menu-item>
+            <el-menu-item index="/products/categories"><el-icon><FolderOpened /></el-icon><span>商品分类</span></el-menu-item>
+            <el-menu-item index="/quotes"><el-icon><Document /></el-icon><span>报价中心</span></el-menu-item>
+          </el-sub-menu>
           <el-menu-item v-if="data.user.role === 'ADMIN'" index="/person"><el-icon><User /></el-icon><span>个人资料</span></el-menu-item>
           <el-menu-item v-if="data.user.role === 'TEACHER'" index="/tPerson"><el-icon><User /></el-icon><span>个人资料</span></el-menu-item>
           <el-menu-item v-if="data.user.role === 'STUDENT'" index="/sPerson"><el-icon><User /></el-icon><span>个人资料</span></el-menu-item>

@@ -1,0 +1,52 @@
+/**
+ * 前端 B 业务页辅助样式
+ * 与 Manager.vue / index.scss 主色 #4caf50 及 global.css 的 .card 对齐
+ */
+.page-container {
+  padding: 0 4px 8px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.filter-bar .spacer {
+  flex: 1;
+}
+
+.detail-label {
+  color: #666;
+  margin-right: 8px;
+}
+
+.detail-value {
+  color: #333;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 36px 0;
+  color: #999;
+}
+
+.card + .card {
+  margin-top: 10px;
+}
