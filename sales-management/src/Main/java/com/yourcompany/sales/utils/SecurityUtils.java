@@ -1,5 +1,6 @@
 package com.yourcompany.sales.utils;
 
+import com.yourcompany.sales.security.LoginUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -20,14 +21,11 @@ public class SecurityUtils {
         if (authentication == null || !authentication.isAuthenticated()) {
             return null;
         }
-        // 如果你们使用了 Spring Security，并且 UserDetails 实现了自定义接口
         Object principal = authentication.getPrincipal();
-        if (principal instanceof Long) {
-            return (Long) principal;
+        if (principal instanceof LoginUser loginUser) {
+            return loginUser.getUserId();
         }
-        // 临时方案：在没有完整认证时返回一个默认用户ID用于开发测试
-        // 生产环境必须删除此行，改为抛出异常或从真实用户获取
-        return 1L;
+        return null;
     }
 
     /**
@@ -37,6 +35,10 @@ public class SecurityUtils {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return "system";
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof LoginUser loginUser) {
+            return loginUser.getUsername();
         }
         return authentication.getName();
     }

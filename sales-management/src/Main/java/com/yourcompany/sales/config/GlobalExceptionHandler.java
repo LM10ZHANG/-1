@@ -7,6 +7,9 @@ import com.yourcompany.sales.common.exception.ResourceNotFoundException;
 import com.yourcompany.sales.common.exception.AccessDeniedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,7 +28,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ApiResponse<Void> handleBusinessException(BusinessException e) {
         log.warn("业务异常: code={}, message={}", e.getErrorCode(), e.getMessage());
-        return ApiResponse.error(e.getMessage());
+        if ("NOT_FOUND".equals(e.getErrorCode()) || "RESOURCE_NOT_FOUND".equals(e.getErrorCode())) {
+            return ApiResponse.notFound(e.getMessage());
+        }
+        if ("FORBIDDEN".equals(e.getErrorCode()) || "ACCESS_DENIED".equals(e.getErrorCode())) {
+            return ApiResponse.forbidden(e.getMessage());
+        }
+        if ("ALREADY_EXISTS".equals(e.getErrorCode()) || "INVALID_STATUS".equals(e.getErrorCode())) {
+            return ApiResponse.badRequest(e.getMessage());
+        }
+        return ApiResponse.error(500, e.getMessage());
+    }
+
+    @ExceptionHandler({BadCredentialsException.class, DisabledException.class, AuthenticationException.class})
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleAuthenticationException(Exception e) {
+        log.warn("认证失败: {}", e.getMessage());
+        return ApiResponse.error(401, e.getMessage());
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleSpringAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+        log.warn("权限不足: {}", e.getMessage());
+        return ApiResponse.forbidden("没有权限执行此操作");
     }
 
     /**

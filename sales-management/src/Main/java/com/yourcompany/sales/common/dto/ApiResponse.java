@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import org.slf4j.MDC;
 
 import java.time.LocalDateTime;
 
@@ -30,6 +31,7 @@ public class ApiResponse<T> {
                 .code(200)
                 .message("success")
                 .data(data)
+                .traceId(MDC.get("traceId"))
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -39,6 +41,7 @@ public class ApiResponse<T> {
                 .code(200)
                 .message(message)
                 .data(data)
+                .traceId(MDC.get("traceId"))
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -52,6 +55,7 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .code(code)
                 .message(message)
+                .traceId(MDC.get("traceId"))
                 .timestamp(LocalDateTime.now())
                 .build();
     }
