@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
@@ -21,26 +21,23 @@ function onTabChange(tab) {
   else if (tab === 'category') router.push('/products/categories')
 }
 
-const filtered = computed(() => {
-  return store.spuList.filter((s) => {
-    if (keyword.value) {
-      const k = keyword.value.toLowerCase()
-      if (
-        !s.spu_name.toLowerCase().includes(k) &&
-        !s.spu_code.toLowerCase().includes(k)
-      ) {
-        return false
-      }
-    }
-    if (categoryFilter.value && s.category_id !== categoryFilter.value) return false
-    if (statusFilter.value !== '' && s.status !== Number(statusFilter.value)) return false
-    return true
+async function load() {
+  await store.fetchSpuPage({
+    pageNum: page.value,
+    pageSize: pageSize.value,
+    spuName: keyword.value || undefined,
+    categoryId: categoryFilter.value ? Number(categoryFilter.value) : undefined,
+    status: statusFilter.value === '' ? undefined : Number(statusFilter.value),
   })
+}
+
+onMounted(async () => {
+  await store.fetchCategoryTree()
+  await load()
 })
 
-const paged = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return filtered.value.slice(start, start + pageSize.value)
+watch([page, pageSize], () => {
+  load()
 })
 
 function goNew() {
@@ -54,9 +51,10 @@ function toggleStatus(row) {
   ElMessageBox.confirm(`确定${action} SPU「${row.spu_name}」吗？`, '操作确认', {
     type: 'warning',
   })
-    .then(() => {
-      store.setSpuStatus(row.id, row.status === 1 ? 0 : 1)
+    .then(async () => {
+      await store.setSpuStatus(row.id, row.status === 1 ? 0 : 1)
       ElMessage.success(`${action}成功`)
+      await load()
     })
     .catch(() => {})
 }
@@ -65,6 +63,11 @@ function resetFilter() {
   categoryFilter.value = ''
   statusFilter.value = ''
   page.value = 1
+  load()
+}
+function search() {
+  page.value = 1
+  load()
 }
 </script>
 
@@ -85,10 +88,11 @@ function resetFilter() {
       <div class="filter-bar">
         <el-input
           v-model="keyword"
-          placeholder="搜索商品名称 / 编码"
+          placeholder="商品名称（服务端模糊）"
           clearable
           style="width: 240px"
           :prefix-icon="Search"
+          @keyup.enter="search"
         />
         <el-select
           v-model="categoryFilter"
@@ -107,12 +111,19 @@ function resetFilter() {
           <el-option label="启用" :value="1" />
           <el-option label="停用" :value="0" />
         </el-select>
+        <el-button type="primary" @click="search">查询</el-button>
         <el-button @click="resetFilter">重置</el-button>
         <div class="spacer" />
-        <span class="detail-label">共 {{ filtered.length }} 条</span>
+        <span class="detail-label">共 {{ store.spuTotal }} 条</span>
       </div>
 
-      <el-table :data="paged" stripe border style="width: 100%">
+      <el-table
+        :data="store.spuList"
+        v-loading="store.loading"
+        stripe
+        border
+        style="width: 100%"
+      >
         <el-table-column prop="spu_code" label="SPU 编码" width="160" />
         <el-table-column prop="spu_name" label="商品名称" min-width="240" />
         <el-table-column label="分类" width="140">
@@ -158,7 +169,7 @@ function resetFilter() {
           v-model:current-page="page"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :total="filtered.length"
+          :total="store.spuTotal"
           layout="total, sizes, prev, pager, next, jumper"
         />
       </div>

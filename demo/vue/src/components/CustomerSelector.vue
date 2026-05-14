@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useCustomerStore } from '@/stores/customerStore'
 
 const props = defineProps({
@@ -11,6 +11,10 @@ const emit = defineEmits(['update:modelValue', 'change'])
 
 const store = useCustomerStore()
 const options = computed(() => store.customerOptions)
+
+onMounted(() => {
+  store.fetchCustomerPage({ pageNum: 1, pageSize: 500 })
+})
 
 const value = computed({
   get: () => props.modelValue || undefined,

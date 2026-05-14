@@ -1,174 +1,78 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { uid } from '@/utils/id'
+import salesHttp, { unwrapSalesResponse } from '@/api/biz/salesHttp'
 
-function seedCategories() {
-  return [
-    { id: 'cat_1', name: '笔记本电脑', parent_id: null, sort: 1 },
-    { id: 'cat_2', name: '台式机', parent_id: null, sort: 2 },
-    { id: 'cat_3', name: '外设配件', parent_id: null, sort: 3 },
-    { id: 'cat_4', name: '键盘', parent_id: 'cat_3', sort: 1 },
-    { id: 'cat_5', name: '鼠标', parent_id: 'cat_3', sort: 2 },
-    { id: 'cat_6', name: '显示器', parent_id: null, sort: 4 },
-  ]
+function sid(v) {
+  return v === null || v === undefined ? '' : String(v)
 }
 
-function seedSpu() {
-  const now = Date.now()
-  return [
-    {
-      id: 'spu_1',
-      spu_code: 'SPU-NB-001',
-      spu_name: 'ThinkPad X1 Carbon 2025',
-      category_id: 'cat_1',
-      brand_name: '联想',
-      unit_name: '台',
-      status: 1,
-      description: '14 英寸轻薄商务本，碳纤维机身',
-      created_at: now - 90 * 86400000,
-    },
-    {
-      id: 'spu_2',
-      spu_code: 'SPU-NB-002',
-      spu_name: 'MacBook Pro 14',
-      category_id: 'cat_1',
-      brand_name: 'Apple',
-      unit_name: '台',
-      status: 1,
-      description: 'M3 芯片，专业级性能',
-      created_at: now - 60 * 86400000,
-    },
-    {
-      id: 'spu_3',
-      spu_code: 'SPU-KB-001',
-      spu_name: '罗技 MX Keys 机械键盘',
-      category_id: 'cat_4',
-      brand_name: '罗技',
-      unit_name: '件',
-      status: 1,
-      description: '无线全尺寸，背光设计',
-      created_at: now - 30 * 86400000,
-    },
-    {
-      id: 'spu_4',
-      spu_code: 'SPU-MN-001',
-      spu_name: 'Dell U2723QE 27英寸 4K 显示器',
-      category_id: 'cat_6',
-      brand_name: 'Dell',
-      unit_name: '台',
-      status: 1,
-      description: 'IPS 面板，USB-C 一线连',
-      created_at: now - 15 * 86400000,
-    },
-    {
-      id: 'spu_5',
-      spu_code: 'SPU-MS-001',
-      spu_name: '罗技 MX Master 3S 鼠标',
-      category_id: 'cat_5',
-      brand_name: '罗技',
-      unit_name: '件',
-      status: 0,
-      description: '已停产，下一代型号上架中',
-      created_at: now - 180 * 86400000,
-    },
-  ]
+function flattenCategoryTree(nodes, out = []) {
+  if (!nodes) return out
+  for (const n of nodes) {
+    out.push({
+      id: sid(n.id),
+      name: n.categoryName ?? '',
+      category_code: n.categoryCode ?? '',
+      parent_id: n.parentId != null && Number(n.parentId) !== 0 ? sid(n.parentId) : null,
+      sort: n.sortNo != null ? Number(n.sortNo) : 0,
+      status: n.status != null ? Number(n.status) : 1,
+      remark: n.remark ?? '',
+    })
+    if (n.children && n.children.length) flattenCategoryTree(n.children, out)
+  }
+  return out
 }
 
-function seedSku() {
-  const now = Date.now()
-  return [
-    {
-      id: 'sku_1',
-      spu_id: 'spu_1',
-      sku_code: 'SKU-NB-001-I7-32G',
-      sku_name: 'ThinkPad X1 Carbon i7/32G/1TB',
-      spec_json: { cpu: 'i7-1360P', ram: '32G', disk: '1TB' },
-      barcode: '6901234567001',
-      sale_price: 14999,
-      cost_price: 11800,
-      tax_rate: 13,
-      stock_warn_qty: 5,
-      status: 1,
-      created_at: now - 89 * 86400000,
-    },
-    {
-      id: 'sku_2',
-      spu_id: 'spu_1',
-      sku_code: 'SKU-NB-001-I5-16G',
-      sku_name: 'ThinkPad X1 Carbon i5/16G/512G',
-      spec_json: { cpu: 'i5-1340P', ram: '16G', disk: '512G' },
-      barcode: '6901234567002',
-      sale_price: 11999,
-      cost_price: 9500,
-      tax_rate: 13,
-      stock_warn_qty: 10,
-      status: 1,
-      created_at: now - 88 * 86400000,
-    },
-    {
-      id: 'sku_3',
-      spu_id: 'spu_2',
-      sku_code: 'SKU-MBP14-M3P-18G',
-      sku_name: 'MacBook Pro 14 M3 Pro/18G/512G 深空黑',
-      spec_json: { cpu: 'M3 Pro', ram: '18G', disk: '512G', color: '深空黑' },
-      barcode: '6901234567003',
-      sale_price: 19999,
-      cost_price: 16500,
-      tax_rate: 13,
-      stock_warn_qty: 3,
-      status: 1,
-      created_at: now - 59 * 86400000,
-    },
-    {
-      id: 'sku_4',
-      spu_id: 'spu_3',
-      sku_code: 'SKU-KB-MXKEYS-BLK',
-      sku_name: '罗技 MX Keys 机械键盘 黑色',
-      spec_json: { color: '黑色' },
-      barcode: '6901234567004',
-      sale_price: 899,
-      cost_price: 620,
-      tax_rate: 13,
-      stock_warn_qty: 20,
-      status: 1,
-      created_at: now - 29 * 86400000,
-    },
-    {
-      id: 'sku_5',
-      spu_id: 'spu_4',
-      sku_code: 'SKU-DELL-U2723QE',
-      sku_name: 'Dell U2723QE 27" 4K',
-      spec_json: { size: '27寸', resolution: '3840x2160' },
-      barcode: '6901234567005',
-      sale_price: 3299,
-      cost_price: 2700,
-      tax_rate: 13,
-      stock_warn_qty: 8,
-      status: 1,
-      created_at: now - 14 * 86400000,
-    },
-    {
-      id: 'sku_6',
-      spu_id: 'spu_5',
-      sku_code: 'SKU-LOGI-MX3S',
-      sku_name: '罗技 MX Master 3S 石墨黑',
-      spec_json: { color: '石墨黑' },
-      barcode: '6901234567006',
-      sale_price: 699,
-      cost_price: 480,
-      tax_rate: 13,
-      stock_warn_qty: 15,
-      status: 0,
-      created_at: now - 179 * 86400000,
-    },
-  ]
+function mapSpu(row) {
+  return {
+    id: sid(row.id),
+    spu_code: row.spuCode ?? '',
+    spu_name: row.spuName ?? '',
+    category_id: row.categoryId != null ? sid(row.categoryId) : '',
+    category_name: row.categoryName ?? '',
+    brand_name: row.brandName ?? '',
+    unit_name: row.unitName ?? '',
+    description: row.description ?? '',
+    status: row.status != null ? Number(row.status) : 1,
+    created_at: row.createdAt ? new Date(row.createdAt).getTime() : Date.now(),
+    updated_at: row.updatedAt ? new Date(row.updatedAt).getTime() : Date.now(),
+  }
+}
+
+function mapSku(row) {
+  let spec_json = {}
+  if (row.specJson) {
+    try {
+      spec_json = typeof row.specJson === 'string' ? JSON.parse(row.specJson) : row.specJson
+    } catch {
+      spec_json = {}
+    }
+  }
+  return {
+    id: sid(row.id),
+    spu_id: row.spuId != null ? sid(row.spuId) : '',
+    spu_name: row.spuName ?? '',
+    sku_code: row.skuCode ?? '',
+    sku_name: row.skuName ?? '',
+    spec_json,
+    barcode: row.barcode ?? '',
+    sale_price: Number(row.salePrice ?? 0),
+    cost_price: Number(row.costPrice ?? 0),
+    tax_rate: Number(row.taxRate ?? 0),
+    stock_warn_qty: row.stockWarnQty != null ? Number(row.stockWarnQty) : 0,
+    status: row.status != null ? Number(row.status) : 1,
+    created_at: row.createdAt ? new Date(row.createdAt).getTime() : Date.now(),
+    updated_at: row.updatedAt ? new Date(row.updatedAt).getTime() : Date.now(),
+  }
 }
 
 export const useProductStore = defineStore('product', () => {
-  const categories = ref(seedCategories())
-  const spuList = ref(seedSpu())
-  const skuList = ref(seedSku())
+  const categories = ref([])
+  const spuList = ref([])
+  const skuList = ref([])
   const loading = ref(false)
+  const spuTotal = ref(0)
+  const skuTotal = ref(0)
 
   const skuOptions = computed(() =>
     skuList.value
@@ -179,87 +83,175 @@ export const useProductStore = defineStore('product', () => {
         sku_name: s.sku_name,
         sale_price: s.sale_price,
         tax_rate: s.tax_rate,
-        spu_name: spuList.value.find((p) => p.id === s.spu_id)?.spu_name || '',
+        spu_name: s.spu_name || spuList.value.find((p) => p.id === s.spu_id)?.spu_name || '',
       })),
   )
 
   function categoryName(id) {
-    return categories.value.find((c) => c.id === id)?.name ?? '-'
+    return categories.value.find((c) => c.id === sid(id))?.name ?? '-'
   }
 
   function findSpuById(id) {
-    return spuList.value.find((s) => s.id === id) || null
+    return spuList.value.find((s) => s.id === sid(id)) || null
   }
 
   function findSkuById(id) {
-    return skuList.value.find((s) => s.id === id) || null
+    return skuList.value.find((s) => s.id === sid(id)) || null
   }
 
-  function saveSpu(payload) {
-    const now = Date.now()
-    if (payload.id) {
-      const idx = spuList.value.findIndex((s) => s.id === payload.id)
-      if (idx >= 0) {
-        spuList.value[idx] = { ...spuList.value[idx], ...payload }
-        return spuList.value[idx]
+  async function fetchCategoryTree() {
+    loading.value = true
+    try {
+      const res = await salesHttp.get('/api/products/categories')
+      const tree = unwrapSalesResponse(res)
+      categories.value = flattenCategoryTree(tree || [])
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchSpuPage(params) {
+    loading.value = true
+    try {
+      const res = await salesHttp.get('/api/products/spu', { params })
+      const data = unwrapSalesResponse(res)
+      if (!data) {
+        spuList.value = []
+        spuTotal.value = 0
+        return
       }
+      spuList.value = (data.list || []).map(mapSpu)
+      spuTotal.value = Number(data.total ?? 0)
+    } finally {
+      loading.value = false
     }
-    const created = {
-      id: uid('spu_'),
-      status: 1,
-      created_at: now,
-      ...payload,
-    }
-    spuList.value.unshift(created)
-    return created
   }
 
-  function saveSku(payload) {
-    const now = Date.now()
-    if (payload.id) {
-      const idx = skuList.value.findIndex((s) => s.id === payload.id)
-      if (idx >= 0) {
-        skuList.value[idx] = { ...skuList.value[idx], ...payload }
-        return skuList.value[idx]
+  async function fetchSkuPage(params) {
+    loading.value = true
+    try {
+      const res = await salesHttp.get('/api/products/sku', { params })
+      const data = unwrapSalesResponse(res)
+      if (!data) {
+        skuList.value = []
+        skuTotal.value = 0
+        return
       }
+      skuList.value = (data.list || []).map(mapSku)
+      skuTotal.value = Number(data.total ?? 0)
+    } finally {
+      loading.value = false
     }
-    const created = {
-      id: uid('sku_'),
-      status: 1,
-      created_at: now,
-      ...payload,
-    }
-    skuList.value.unshift(created)
-    return created
   }
 
-  function setSpuStatus(id, status) {
+  async function loadSpuById(id) {
+    const res = await salesHttp.get(`/api/products/spu/${sid(id)}`)
+    const row = unwrapSalesResponse(res)
+    return row ? mapSpu(row) : null
+  }
+
+  async function loadSkuById(id) {
+    const res = await salesHttp.get(`/api/products/sku/${sid(id)}`)
+    const row = unwrapSalesResponse(res)
+    return row ? mapSku(row) : null
+  }
+
+  async function saveSpu(payload) {
+    const body = {
+      spuCode: payload.spu_code,
+      spuName: payload.spu_name,
+      categoryId: payload.category_id ? Number(payload.category_id) : undefined,
+      brandName: payload.brand_name || undefined,
+      unitName: payload.unit_name || undefined,
+      description: payload.description || undefined,
+      status: payload.status != null ? Number(payload.status) : 1,
+    }
+    if (payload.id) {
+      const res = await salesHttp.put(`/api/products/spu/${sid(payload.id)}`, body)
+      const row = unwrapSalesResponse(res)
+      return mapSpu(row)
+    }
+    const res = await salesHttp.post('/api/products/spu', body)
+    const row = unwrapSalesResponse(res)
+    return mapSpu(row)
+  }
+
+  async function saveSku(payload) {
+    const body = {
+      spuId: Number(payload.spu_id),
+      skuCode: payload.sku_code,
+      skuName: payload.sku_name,
+      specJson:
+        payload.spec_json && Object.keys(payload.spec_json).length
+          ? JSON.stringify(payload.spec_json)
+          : undefined,
+      barcode: payload.barcode || undefined,
+      salePrice: payload.sale_price != null ? Number(payload.sale_price) : 0,
+      costPrice: payload.cost_price != null ? Number(payload.cost_price) : 0,
+      taxRate: payload.tax_rate != null ? Number(payload.tax_rate) : 0,
+      stockWarnQty: payload.stock_warn_qty != null ? Number(payload.stock_warn_qty) : 0,
+      status: payload.status != null ? Number(payload.status) : 1,
+    }
+    if (payload.id) {
+      const res = await salesHttp.put(`/api/products/sku/${sid(payload.id)}`, body)
+      const row = unwrapSalesResponse(res)
+      return mapSku(row)
+    }
+    const res = await salesHttp.post('/api/products/sku', body)
+    const row = unwrapSalesResponse(res)
+    return mapSku(row)
+  }
+
+  async function setSpuStatus(id, status) {
+    const res = await salesHttp.put(`/api/products/spu/${sid(id)}/status`, {}, {
+      params: { status },
+    })
+    unwrapSalesResponse(res)
     const s = findSpuById(id)
-    if (s) s.status = status
+    if (s) s.status = Number(status)
   }
 
-  function setSkuStatus(id, status) {
+  async function setSkuStatus(id, status) {
+    const res = await salesHttp.put(`/api/products/sku/${sid(id)}/status`, {}, {
+      params: { status },
+    })
+    unwrapSalesResponse(res)
     const s = findSkuById(id)
-    if (s) s.status = status
+    if (s) s.status = Number(status)
   }
 
-  function saveCategory(payload) {
-    if (payload.id) {
-      const idx = categories.value.findIndex((c) => c.id === payload.id)
-      if (idx >= 0) categories.value[idx] = { ...categories.value[idx], ...payload }
-      return categories.value[idx]
+  async function saveCategory(payload) {
+    const parentId = payload.parent_id ? Number(payload.parent_id) : 0
+    const code =
+      payload.category_code ||
+      `CAT_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+    const body = {
+      parentId,
+      categoryCode: code,
+      categoryName: payload.name,
+      sortNo: payload.sort != null ? Number(payload.sort) : 0,
+      status: 1,
+      remark: payload.remark || undefined,
     }
-    const created = { id: uid('cat_'), parent_id: null, sort: 0, ...payload }
-    categories.value.push(created)
-    return created
+    if (payload.id) {
+      const res = await salesHttp.put(`/api/products/categories/${sid(payload.id)}`, body)
+      const row = unwrapSalesResponse(res)
+      await fetchCategoryTree()
+      return categories.value.find((c) => c.id === sid(row.id)) || {
+        id: sid(row.id),
+        name: row.categoryName,
+        category_code: row.categoryCode,
+        parent_id: row.parentId ? sid(row.parentId) : null,
+        sort: row.sortNo,
+      }
+    }
+    await salesHttp.post('/api/products/categories', body)
+    await fetchCategoryTree()
+    return categories.value.find((c) => c.category_code === code) || null
   }
 
-  function removeCategory(id) {
-    if (categories.value.some((c) => c.parent_id === id)) return false
-    if (spuList.value.some((s) => s.category_id === id)) return false
-    const idx = categories.value.findIndex((c) => c.id === id)
-    if (idx >= 0) categories.value.splice(idx, 1)
-    return true
+  function removeCategory() {
+    return false
   }
 
   return {
@@ -267,10 +259,17 @@ export const useProductStore = defineStore('product', () => {
     spuList,
     skuList,
     loading,
+    spuTotal,
+    skuTotal,
     skuOptions,
     categoryName,
     findSpuById,
     findSkuById,
+    fetchCategoryTree,
+    fetchSpuPage,
+    fetchSkuPage,
+    loadSpuById,
+    loadSkuById,
     saveSpu,
     saveSku,
     setSpuStatus,

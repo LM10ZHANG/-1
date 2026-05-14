@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
@@ -23,25 +23,36 @@ const filtered = computed(() => {
     if (keyword.value) {
       const k = keyword.value.toLowerCase()
       if (
-        !q.quote_no.toLowerCase().includes(k) &&
+        !String(q.quote_no || '')
+          .toLowerCase()
+          .includes(k) &&
         !(q.customer_name_snapshot || '').toLowerCase().includes(k)
       ) {
         return false
       }
     }
     if (statusFilter.value && q.status !== statusFilter.value) return false
-    if (customerFilter.value && q.customer_id !== customerFilter.value) return false
+    if (customerFilter.value && String(q.customer_id) !== String(customerFilter.value)) return false
     return true
   })
 })
 
 function quoteTotal(q) {
-  return (q.items || []).reduce((sum, it) => sum + it.deal_unit_price * it.qty, 0)
+  return (q.items || []).reduce((sum, it) => sum + Number(it.deal_unit_price || 0) * Number(it.qty || 0), 0)
 }
 
 const paged = computed(() => {
   const start = (page.value - 1) * pageSize.value
   return filtered.value.slice(start, start + pageSize.value)
+})
+
+onMounted(async () => {
+  await customerStore.fetchCustomerPage({ pageNum: 1, pageSize: 500 })
+  await store.fetchQuotePage({ pageNum: 1, pageSize: 500 })
+})
+
+watch([keyword, statusFilter, customerFilter], () => {
+  page.value = 1
 })
 
 function goNew() {
@@ -51,9 +62,9 @@ function goDetail(row) {
   router.push(`/quotes/${row.id}`)
 }
 function goEdit(row) {
-  if (['APPROVED', 'VOID'].includes(row.status)) {
+  if (['APPROVED', 'VOID', 'CONVERTED'].includes(row.status)) {
     ElMessageBox.confirm(
-      '该报价已审批通过或作废，编辑后会重新回到"待审批"状态，是否继续？',
+      '该报价已审批通过、已作废或已转订单，编辑可能受后端状态限制，是否继续？',
       '提示',
       { type: 'warning' },
     )
@@ -67,12 +78,11 @@ function goApprove(row) {
   router.push(`/quotes/${row.id}/approve`)
 }
 function voidQuote(row) {
-  ElMessageBox.confirm(`确定将报价「${row.quote_no}」作废吗？`, '操作确认', {
+  ElMessageBox.confirm(`确定尝试作废报价「${row.quote_no}」吗？`, '操作确认', {
     type: 'warning',
   })
     .then(() => {
       store.voidQuote(row.id)
-      ElMessage.success('已作废')
     })
     .catch(() => {})
 }
@@ -91,11 +101,20 @@ function resetFilter() {
       <el-button type="primary" :icon="Plus" @click="goNew">新建报价</el-button>
     </div>
 
+    <el-alert
+      v-if="store.listUnavailable"
+      type="info"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 12px"
+      title="当前后端未开放「报价单分页列表」接口（QuoteController 仅有按 ID 查询）。列表可能为空；新建或从详情链接访问仍可操作单条数据。"
+    />
+
     <div class="card">
       <div class="filter-bar">
         <el-input
           v-model="keyword"
-          placeholder="搜索报价单号 / 客户名称"
+          placeholder="本地筛选：报价单号 / 客户名称"
           clearable
           style="width: 260px"
           :prefix-icon="Search"
@@ -124,10 +143,10 @@ function resetFilter() {
         </el-select>
         <el-button @click="resetFilter">重置</el-button>
         <div class="spacer" />
-        <span class="detail-label">共 {{ filtered.length }} 条</span>
+        <span class="detail-label">当前已加载 {{ filtered.length }} 条（本地筛选）</span>
       </div>
 
-      <el-table :data="paged" stripe border style="width: 100%">
+      <el-table :data="paged" v-loading="store.loading" stripe border style="width: 100%">
         <el-table-column prop="quote_no" label="报价单号" width="160" />
         <el-table-column label="客户" min-width="220">
           <template #default="{ row }">
@@ -163,13 +182,13 @@ function resetFilter() {
               size="small"
               link
               type="primary"
-              :disabled="['VOID'].includes(row.status)"
+              :disabled="['VOID', 'CONVERTED'].includes(row.status)"
               @click="goEdit(row)"
             >
               编辑
             </el-button>
             <el-button
-              v-if="row.status === 'WAIT_APPROVAL'"
+              v-if="row.status === 'PENDING_APPROVAL'"
               size="small"
               link
               type="warning"
@@ -178,7 +197,7 @@ function resetFilter() {
               去审批
             </el-button>
             <el-button
-              v-if="!['VOID'].includes(row.status)"
+              v-if="!['VOID', 'CONVERTED'].includes(row.status)"
               size="small"
               link
               type="danger"

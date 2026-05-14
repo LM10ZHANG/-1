@@ -33,9 +33,11 @@ const rules = {
   sale_price: [{ required: true, message: '请输入销售价', trigger: 'blur' }],
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await store.fetchCategoryTree()
+  await store.fetchSpuPage({ pageNum: 1, pageSize: 500 })
   if (isEdit.value) {
-    const s = store.findSkuById(route.params.id)
+    const s = await store.loadSkuById(route.params.id)
     if (!s) {
       ElMessage.error('SKU 不存在')
       router.replace('/products/sku')
@@ -62,7 +64,7 @@ async function onSubmit() {
     .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {})
   const payload = { ...form, spec_json }
   delete payload.specs
-  store.saveSku(payload)
+  await store.saveSku(payload)
   ElMessage.success(isEdit.value ? '保存成功' : '新增成功')
   router.replace('/products/sku')
 }

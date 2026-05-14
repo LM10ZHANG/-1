@@ -45,8 +45,9 @@ const contactOptions = computed(() =>
   form.customer_id ? customerStore.listContactsByCustomer(form.customer_id) : [],
 )
 
-onMounted(() => {
+onMounted(async () => {
   if (isEdit.value) {
+    await store.loadQuoteById(route.params.id)
     const q = store.findById(route.params.id)
     if (!q) {
       ElMessage.error('报价单不存在')
@@ -55,11 +56,15 @@ onMounted(() => {
     }
     Object.assign(form, JSON.parse(JSON.stringify(q)))
   }
+  if (form.customer_id) {
+    await customerStore.fetchContactsForCustomer(form.customer_id)
+  }
 })
 
-function onCustomerChange(customer) {
+async function onCustomerChange(customer) {
   if (customer) {
     form.customer_name_snapshot = customer.customer_name
+    await customerStore.fetchContactsForCustomer(customer.id)
     const primary = customerStore.listContactsByCustomer(customer.id).find((c) => c.is_primary)
     if (primary) {
       form.contact_id = primary.id
@@ -121,13 +126,14 @@ async function save(action = 'draft') {
     )
   }
 
-  const saved = store.saveQuote({ ...form })
+  const saved = await store.saveQuote({ ...form })
   if (action === 'submit') {
-    store.submitApproval(saved.id)
+    await store.submitApproval(saved.id)
     ElMessage.success('已提交审批')
   } else {
     ElMessage.success('保存为草稿')
   }
+  await store.loadQuoteById(saved.id)
   router.replace(`/quotes/${saved.id}`)
 }
 </script>

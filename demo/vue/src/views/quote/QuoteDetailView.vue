@@ -1,11 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { useQuoteStore } from '@/stores/quoteStore'
 import { QUOTE_STATUS, getEnumLabel, getEnumTagType } from '@/utils/enums'
-import { formatDate, formatDateTime, formatMoney } from '@/utils/id'
+import { formatDate, formatDateTime } from '@/utils/id'
 import QuoteItemTable from '@/components/QuoteItemTable.vue'
 
 const route = useRoute()
@@ -14,16 +14,30 @@ const store = useQuoteStore()
 
 const quote = computed(() => store.findById(route.params.id))
 
+async function reload() {
+  await store.loadQuoteById(route.params.id)
+}
+
+onMounted(reload)
+watch(
+  () => route.params.id,
+  () => reload(),
+)
+
 function goEdit() {
   if (quote.value.status === 'VOID') {
     ElMessage.warning('已作废的报价不能编辑')
     return
   }
+  if (quote.value.status === 'CONVERTED') {
+    ElMessage.warning('已转订单的报价不能编辑')
+    return
+  }
   router.push(`/quotes/${quote.value.id}/edit`)
 }
 
-function submitApproval() {
-  store.submitApproval(quote.value.id)
+async function submitApproval() {
+  await store.submitApproval(quote.value.id)
   ElMessage.success('已提交审批')
 }
 
@@ -33,7 +47,7 @@ function goApprove() {
 </script>
 
 <template>
-  <div v-if="quote" class="page-container">
+  <div v-if="quote" v-loading="store.loading" class="page-container">
     <div class="page-header">
       <div style="display: flex; align-items: center; gap: 12px">
         <el-button link :icon="ArrowLeft" @click="router.push('/quotes')">返回列表</el-button>
@@ -44,7 +58,7 @@ function goApprove() {
       </div>
       <div style="display: flex; gap: 8px">
         <el-button v-if="quote.status === 'DRAFT'" @click="submitApproval">提交审批</el-button>
-        <el-button v-if="quote.status === 'WAIT_APPROVAL'" type="warning" @click="goApprove">
+        <el-button v-if="quote.status === 'PENDING_APPROVAL'" type="warning" @click="goApprove">
           前往审批
         </el-button>
         <el-button type="primary" :disabled="quote.status === 'VOID'" @click="goEdit">

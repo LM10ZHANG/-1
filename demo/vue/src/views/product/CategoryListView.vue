@@ -1,12 +1,16 @@
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useProductStore } from '@/stores/productStore'
 
 const router = useRouter()
 const store = useProductStore()
+
+onMounted(() => {
+  store.fetchCategoryTree()
+})
 
 const activeTab = ref('category')
 function onTabChange(tab) {
@@ -31,36 +35,34 @@ const tree = computed(() => {
 })
 
 const dialog = ref(false)
-const form = reactive({ id: '', name: '', parent_id: null, sort: 0 })
+const form = reactive({ id: '', name: '', parent_id: null, sort: 0, category_code: '' })
 const formRef = ref(null)
 const rules = {
   name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
 }
 
 function openNew(parent = null) {
-  Object.assign(form, { id: '', name: '', parent_id: parent?.id || null, sort: 0 })
+  Object.assign(form, { id: '', name: '', parent_id: parent?.id || null, sort: 0, category_code: '' })
   dialog.value = true
 }
 function openEdit(c) {
-  Object.assign(form, { ...c })
+  Object.assign(form, {
+    id: c.id,
+    name: c.name,
+    parent_id: c.parent_id,
+    sort: c.sort,
+    category_code: c.category_code || '',
+  })
   dialog.value = true
 }
 async function save() {
   await formRef.value?.validate()
-  store.saveCategory({ ...form })
+  await store.saveCategory({ ...form })
   ElMessage.success('保存成功')
   dialog.value = false
 }
-function remove(c) {
-  ElMessageBox.confirm(`确定删除分类「${c.name}」吗？（存在子分类或关联商品时无法删除）`, '提示', {
-    type: 'warning',
-  })
-    .then(() => {
-      const ok = store.removeCategory(c.id)
-      if (ok) ElMessage.success('删除成功')
-      else ElMessage.warning('该分类下存在子分类或商品，无法删除')
-    })
-    .catch(() => {})
+function remove(row) {
+  ElMessage.warning(`后端未提供删除分类接口，「${row.name}」无法在此删除`)
 }
 </script>
 
@@ -107,6 +109,9 @@ function remove(c) {
 
     <el-dialog v-model="dialog" :title="form.id ? '编辑分类' : '新增分类'" width="460px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="分类编码">
+          <el-input v-model="form.category_code" placeholder="新增留空则自动生成；编辑保留原编码" />
+        </el-form-item>
         <el-form-item label="分类名称" prop="name">
           <el-input v-model="form.name" />
         </el-form-item>

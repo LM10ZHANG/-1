@@ -42,8 +42,9 @@ const rules = {
   ],
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (isEdit.value) {
+    await store.loadCustomerDetail(route.params.id)
     const c = store.findById(route.params.id)
     if (!c) {
       ElMessage.error('客户不存在')
@@ -56,7 +57,11 @@ onMounted(() => {
 
 async function onSubmit() {
   await formRef.value?.validate()
-  const saved = store.saveCustomer({ ...form })
+  if (!isEdit.value && !form.customer_code?.trim()) {
+    ElMessage.error('请填写客户编码（后端必填）')
+    return
+  }
+  const saved = await store.saveCustomer({ ...form })
   ElMessage.success(isEdit.value ? '保存成功' : '新增成功')
   router.replace(`/customers/${saved.id}`)
 }

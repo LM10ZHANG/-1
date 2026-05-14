@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, reactive } from 'vue'
+import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ArrowLeft, ChatLineRound } from '@element-plus/icons-vue'
@@ -16,6 +16,8 @@ import { formatDate, formatDateTime } from '@/utils/id'
 const route = useRoute()
 const router = useRouter()
 const store = useCustomerStore()
+
+const loaded = ref(false)
 
 const customer = computed(() => store.findById(route.params.id))
 const contacts = computed(() => store.listContactsByCustomer(route.params.id))
@@ -57,7 +59,7 @@ function openContact(c) {
 
 async function saveContact() {
   await contactFormRef.value?.validate()
-  store.saveContact({ ...contactForm })
+  await store.saveContact({ ...contactForm })
   ElMessage.success('保存成功')
   contactDialog.value = false
 }
@@ -66,8 +68,8 @@ function removeContact(c) {
   ElMessageBox.confirm(`确定删除联系人「${c.name}」吗？`, '提示', {
     type: 'warning',
   })
-    .then(() => {
-      store.removeContact(c.id)
+    .then(async () => {
+      await store.removeContact(c.id)
       ElMessage.success('删除成功')
     })
     .catch(() => {})
@@ -100,7 +102,7 @@ function openFollow() {
 
 async function saveFollow() {
   await followFormRef.value?.validate()
-  store.addFollowup({
+  await store.addFollowup({
     ...followForm,
     next_follow_time: followForm.next_follow_time
       ? new Date(followForm.next_follow_time).getTime()
@@ -109,6 +111,28 @@ async function saveFollow() {
   ElMessage.success('跟进已登记')
   followDialog.value = false
 }
+
+async function reload() {
+  loaded.value = false
+  try {
+    const row = await store.loadCustomerDetail(route.params.id)
+    loaded.value = true
+    if (!row) {
+      ElMessage.error('客户不存在')
+      router.replace('/customers')
+    }
+  } catch {
+    loaded.value = true
+    ElMessage.error('加载客户失败')
+    router.replace('/customers')
+  }
+}
+
+onMounted(reload)
+watch(
+  () => route.params.id,
+  () => reload(),
+)
 
 function goEdit() {
   router.push(`/customers/${route.params.id}/edit`)
@@ -119,7 +143,7 @@ function goBack() {
 </script>
 
 <template>
-  <div v-if="customer" class="page-container">
+  <div v-if="loaded && customer" v-loading="store.loading" class="page-container">
     <div class="page-header">
       <div style="display: flex; align-items: center; gap: 12px">
         <el-button link @click="goBack" :icon="ArrowLeft">返回列表</el-button>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
@@ -15,6 +15,7 @@ const spuFilter = ref('')
 const statusFilter = ref('')
 const page = ref(1)
 const pageSize = ref(10)
+const spuFilterList = ref([])
 
 const activeTab = ref('sku')
 function onTabChange(tab) {
@@ -22,36 +23,42 @@ function onTabChange(tab) {
   else if (tab === 'category') router.push('/products/categories')
 }
 
-onMounted(() => {
-  if (route.query.spu) {
-    spuFilter.value = route.query.spu
-  }
-})
-
-const filtered = computed(() => {
-  return store.skuList.filter((s) => {
-    if (keyword.value) {
-      const k = keyword.value.toLowerCase()
-      if (
-        !s.sku_name.toLowerCase().includes(k) &&
-        !s.sku_code.toLowerCase().includes(k)
-      ) {
-        return false
-      }
-    }
-    if (spuFilter.value && s.spu_id !== spuFilter.value) return false
-    if (statusFilter.value !== '' && s.status !== Number(statusFilter.value)) return false
-    return true
+async function load() {
+  await store.fetchSkuPage({
+    pageNum: page.value,
+    pageSize: pageSize.value,
+    skuName: keyword.value || undefined,
+    spuId: spuFilter.value ? Number(spuFilter.value) : undefined,
+    status: statusFilter.value === '' ? undefined : Number(statusFilter.value),
   })
+}
+
+onMounted(async () => {
+  await store.fetchSpuPage({ pageNum: 1, pageSize: 500 })
+  spuFilterList.value = [...store.spuList]
+  if (route.query.spu) {
+    spuFilter.value = String(route.query.spu)
+  }
+  await load()
 })
 
-const paged = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return filtered.value.slice(start, start + pageSize.value)
+watch([page, pageSize], () => {
+  load()
 })
+
+watch(
+  () => route.query.spu,
+  (v) => {
+    if (v) {
+      spuFilter.value = String(v)
+      page.value = 1
+      load()
+    }
+  },
+)
 
 function spuName(id) {
-  return store.findSpuById(id)?.spu_name ?? '-'
+  return spuFilterList.value.find((s) => s.id === String(id))?.spu_name ?? store.findSpuById(id)?.spu_name ?? '-'
 }
 
 function goNew() {
@@ -65,9 +72,10 @@ function toggleStatus(row) {
   ElMessageBox.confirm(`确定${action} SKU「${row.sku_name}」吗？`, '操作确认', {
     type: 'warning',
   })
-    .then(() => {
-      store.setSkuStatus(row.id, row.status === 1 ? 0 : 1)
+    .then(async () => {
+      await store.setSkuStatus(row.id, row.status === 1 ? 0 : 1)
       ElMessage.success(`${action}成功`)
+      await load()
     })
     .catch(() => {})
 }
@@ -76,6 +84,11 @@ function resetFilter() {
   spuFilter.value = ''
   statusFilter.value = ''
   page.value = 1
+  load()
+}
+function search() {
+  page.value = 1
+  load()
 }
 function formatSpec(spec) {
   if (!spec) return '-'
@@ -102,14 +115,15 @@ function formatSpec(spec) {
       <div class="filter-bar">
         <el-input
           v-model="keyword"
-          placeholder="搜索 SKU 名称 / 编码"
+          placeholder="SKU 名称（服务端）"
           clearable
           style="width: 240px"
           :prefix-icon="Search"
+          @keyup.enter="search"
         />
         <el-select v-model="spuFilter" placeholder="所属 SPU" clearable style="width: 220px">
           <el-option
-            v-for="s in store.spuList"
+            v-for="s in spuFilterList"
             :key="s.id"
             :label="s.spu_name"
             :value="s.id"
@@ -119,12 +133,19 @@ function formatSpec(spec) {
           <el-option label="启用" :value="1" />
           <el-option label="停用" :value="0" />
         </el-select>
+        <el-button type="primary" @click="search">查询</el-button>
         <el-button @click="resetFilter">重置</el-button>
         <div class="spacer" />
-        <span class="detail-label">共 {{ filtered.length }} 条</span>
+        <span class="detail-label">共 {{ store.skuTotal }} 条</span>
       </div>
 
-      <el-table :data="paged" stripe border style="width: 100%">
+      <el-table
+        :data="store.skuList"
+        v-loading="store.loading"
+        stripe
+        border
+        style="width: 100%"
+      >
         <el-table-column prop="sku_code" label="SKU 编码" width="200" />
         <el-table-column prop="sku_name" label="SKU 名称" min-width="240" />
         <el-table-column label="所属 SPU" min-width="200">
@@ -171,7 +192,7 @@ function formatSpec(spec) {
           v-model:current-page="page"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :total="filtered.length"
+          :total="store.skuTotal"
           layout="total, sizes, prev, pager, next, jumper"
         />
       </div>

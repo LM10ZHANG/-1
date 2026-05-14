@@ -32,10 +32,11 @@ export const PRODUCT_STATUS = [
 
 export const QUOTE_STATUS = [
   { value: 'DRAFT', label: '草稿', type: 'info' },
-  { value: 'WAIT_APPROVAL', label: '待审批', type: 'warning' },
+  { value: 'PENDING_APPROVAL', label: '待审批', type: 'warning' },
   { value: 'APPROVED', label: '已通过', type: 'success' },
   { value: 'REJECTED', label: '已驳回', type: 'danger' },
   { value: 'VOID', label: '已作废', type: 'info' },
+  { value: 'CONVERTED', label: '已转订单', type: 'success' },
 ]
 
 export function getEnumLabel(list, value) {
@@ -46,4 +47,5 @@ export function getEnumTagType(list, value) {
   return list.find((item) => item.value === value)?.type ?? 'info'
 }
 
-export const DISCOUNT_APPROVAL_THRESHOLD = 0.15
+/** 与后端 QuoteService 折扣阈值（multiplier 小于 0.8）对齐：约 20% 及以上折扣需审批 */
+export const DISCOUNT_APPROVAL_THRESHOLD = 0.2

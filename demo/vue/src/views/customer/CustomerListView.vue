@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
@@ -16,26 +16,20 @@ const statusFilter = ref('')
 const page = ref(1)
 const pageSize = ref(10)
 
-const filtered = computed(() => {
-  return store.customers.filter((c) => {
-    if (keyword.value) {
-      const k = keyword.value.toLowerCase()
-      if (
-        !c.customer_name.toLowerCase().includes(k) &&
-        !c.customer_code.toLowerCase().includes(k)
-      ) {
-        return false
-      }
-    }
-    if (levelFilter.value && c.customer_level !== levelFilter.value) return false
-    if (statusFilter.value !== '' && c.status !== Number(statusFilter.value)) return false
-    return true
+async function load() {
+  await store.fetchCustomerPage({
+    pageNum: page.value,
+    pageSize: pageSize.value,
+    customerName: keyword.value || undefined,
+    customerLevel: levelFilter.value || undefined,
+    status: statusFilter.value === '' ? undefined : Number(statusFilter.value),
   })
-})
+}
 
-const paged = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return filtered.value.slice(start, start + pageSize.value)
+onMounted(load)
+
+watch([page, pageSize], () => {
+  load()
 })
 
 function goDetail(row) {
@@ -55,9 +49,10 @@ function toggleStatus(row) {
   ElMessageBox.confirm(`确定${action}客户「${row.customer_name}」吗？`, '操作确认', {
     type: 'warning',
   })
-    .then(() => {
-      store.setCustomerStatus(row.id, row.status === 1 ? 0 : 1)
+    .then(async () => {
+      await store.setCustomerStatus(row.id, row.status === 1 ? 0 : 1)
       ElMessage.success(`${action}成功`)
+      await load()
     })
     .catch(() => {})
 }
@@ -67,6 +62,12 @@ function resetFilter() {
   levelFilter.value = ''
   statusFilter.value = ''
   page.value = 1
+  load()
+}
+
+function search() {
+  page.value = 1
+  load()
 }
 </script>
 
@@ -81,10 +82,11 @@ function resetFilter() {
       <div class="filter-bar">
         <el-input
           v-model="keyword"
-          placeholder="搜索客户名称 / 编码"
+          placeholder="搜索客户名称（服务端）"
           clearable
           style="width: 240px"
           :prefix-icon="Search"
+          @keyup.enter="search"
         />
         <el-select
           v-model="levelFilter"
@@ -103,12 +105,13 @@ function resetFilter() {
           <el-option label="启用" :value="1" />
           <el-option label="禁用" :value="0" />
         </el-select>
+        <el-button type="primary" @click="search">查询</el-button>
         <el-button @click="resetFilter">重置</el-button>
         <div class="spacer" />
-        <span class="detail-label">共 {{ filtered.length }} 条</span>
+        <span class="detail-label">共 {{ store.listTotal }} 条</span>
       </div>
 
-      <el-table :data="paged" stripe border style="width: 100%" row-key="id">
+      <el-table :data="store.customers" v-loading="store.loading" stripe border style="width: 100%" row-key="id">
         <el-table-column prop="customer_code" label="客户编码" width="140" />
         <el-table-column label="客户名称" min-width="220">
           <template #default="{ row }">
@@ -180,7 +183,7 @@ function resetFilter() {
           v-model:current-page="page"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :total="filtered.length"
+          :total="store.listTotal"
           layout="total, sizes, prev, pager, next, jumper"
         />
       </div>

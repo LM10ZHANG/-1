@@ -29,9 +29,10 @@ const rules = {
   unit_name: [{ required: true, message: '请输入单位', trigger: 'blur' }],
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await store.fetchCategoryTree()
   if (isEdit.value) {
-    const s = store.findSpuById(route.params.id)
+    const s = await store.loadSpuById(route.params.id)
     if (!s) {
       ElMessage.error('SPU 不存在')
       router.replace('/products/spu')
@@ -43,7 +44,7 @@ onMounted(() => {
 
 async function onSubmit() {
   await formRef.value?.validate()
-  store.saveSpu({ ...form })
+  await store.saveSpu({ ...form })
   ElMessage.success(isEdit.value ? '保存成功' : '新增成功')
   router.replace('/products/spu')
 }

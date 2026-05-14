@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -15,7 +15,7 @@ const store = useQuoteStore()
 const quote = computed(() => store.findById(route.params.id))
 const comment = ref('')
 
-const canApprove = computed(() => quote.value?.status === 'WAIT_APPROVAL')
+const canApprove = computed(() => quote.value?.status === 'PENDING_APPROVAL')
 
 const overDiscountItems = computed(() => {
   if (!quote.value) return []
@@ -23,25 +23,35 @@ const overDiscountItems = computed(() => {
   return quote.value.items.filter((it) => (Number(it.discount_rate) || 0) > threshold)
 })
 
-function approve() {
-  store.approve(quote.value.id, comment.value || '同意')
+async function reload() {
+  await store.loadQuoteById(route.params.id)
+}
+
+onMounted(reload)
+watch(
+  () => route.params.id,
+  () => reload(),
+)
+
+async function approve() {
+  await store.approve(quote.value.id, comment.value || '同意')
   ElMessage.success('已通过')
   router.replace(`/quotes/${quote.value.id}`)
 }
 
-function reject() {
+async function reject() {
   if (!comment.value) {
     ElMessage.warning('驳回需要填写审批意见')
     return
   }
-  store.reject(quote.value.id, comment.value)
+  await store.reject(quote.value.id, comment.value)
   ElMessage.success('已驳回')
   router.replace(`/quotes/${quote.value.id}`)
 }
 </script>
 
 <template>
-  <div v-if="quote" class="page-container">
+  <div v-if="quote" v-loading="store.loading" class="page-container">
     <div class="page-header">
       <div style="display: flex; align-items: center; gap: 12px">
         <el-button link :icon="ArrowLeft" @click="router.push('/quotes')">返回列表</el-button>

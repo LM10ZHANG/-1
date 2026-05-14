@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { useProductStore } from '@/stores/productStore'
 import { formatMoney } from '@/utils/id'
@@ -15,6 +15,12 @@ const dialogVisible = defineModel('visible', { default: false })
 const store = useProductStore()
 const keyword = ref('')
 const multiSelected = ref([])
+
+watch(dialogVisible, async (open) => {
+  if (open) {
+    await store.fetchSkuPage({ pageNum: 1, pageSize: 500, status: 1 })
+  }
+})
 
 const options = computed(() => {
   return store.skuOptions.filter((o) => {
