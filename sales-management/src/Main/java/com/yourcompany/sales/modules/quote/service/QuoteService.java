@@ -7,9 +7,12 @@ import com.yourcompany.sales.common.enums.QuoteStatus;
 import com.yourcompany.sales.common.exception.BusinessException;
 import com.yourcompany.sales.modules.approval.entity.ApprovalRecord;
 import com.yourcompany.sales.modules.approval.repository.ApprovalRecordRepository;
+import com.yourcompany.sales.modules.customer.service.CustomerQueryService;
 import com.yourcompany.sales.modules.order.entity.SalesOrder;
 import com.yourcompany.sales.modules.order.entity.SalesOrderItem;
 import com.yourcompany.sales.modules.order.repository.OrderRepository;
+import com.yourcompany.sales.modules.product.dto.SkuPricingVo;
+import com.yourcompany.sales.modules.product.service.SkuQueryService;
 import com.yourcompany.sales.modules.quote.dto.*;
 import com.yourcompany.sales.modules.quote.entity.SalesQuote;
 import com.yourcompany.sales.modules.quote.entity.SalesQuoteItem;
@@ -43,15 +46,17 @@ public class QuoteService {
     private final ApprovalRecordRepository approvalRecordRepository;
     private final CodeGenerator codeGenerator;
 
-    // 如果需要调用商品服务检查 SKU，可注入 FeignClient 或 Service
-    // private final ProductService productService;
+    // 后端 B 提供的主数据查询服务
+    private final CustomerQueryService customerQueryService;
+    private final SkuQueryService skuQueryService;
 
     /**
      * 创建报价单（草稿状态）
      */
     @Transactional
     public QuoteResponse createQuote(QuoteCreateRequest request) {
-        // 1. 校验客户是否存在且状态正常（此处省略，调用客户服务）
+        // 1. 校验客户是否存在且状态正常（后端 B 提供）
+        customerQueryService.requireActive(request.getCustomerId());
         // 2. 生成报价单号
         String quoteNo = codeGenerator.generateQuoteNo();
 
@@ -71,20 +76,17 @@ public class QuoteService {
         quote.setApprovalStatus(ApprovalStatus.NOT_SUBMIT);
         quote.setOwnerUserId(SecurityUtils.getCurrentUserId());
 
-        // 4. 处理明细
-        List<SalesQuoteItem> items = new ArrayList<>();
+        // 4. 处理明细：从后端 B 的 SkuQueryService 拉真实的 SKU 名称/价格/税率
         for (QuoteItemRequest itemReq : request.getItems()) {
-            // 这里应调用商品服务获取 SKU 信息（价格、税率、名称等），演示中模拟数据
-            // ProductSku sku = productService.getSku(itemReq.getSkuId());
-            // if (!sku.getStatus()) throw new BusinessException("SKU已停用");
+            SkuPricingVo pricing = skuQueryService.getForPricing(itemReq.getSkuId());
 
             SalesQuoteItem item = new SalesQuoteItem();
-            item.setSkuId(itemReq.getSkuId());
-            item.setSkuNameSnapshot("商品名称快照"); // 实际应从 SKU 获取
+            item.setSkuId(pricing.getSkuId());
+            item.setSkuNameSnapshot(pricing.getSkuName());
             item.setQty(itemReq.getQty());
-            item.setOriginUnitPrice(new BigDecimal("100.00")); // 模拟原价
+            item.setOriginUnitPrice(pricing.getSalePrice());
             item.setDiscountRate(itemReq.getDiscountRate());
-            item.setTaxRate(new BigDecimal("13.00"));          // 模拟税率
+            item.setTaxRate(pricing.getTaxRate());
             item.setRemark(itemReq.getRemark());
             item.calculateLineAmount();
             quote.addItem(item);
@@ -128,17 +130,18 @@ public class QuoteService {
         quote.setDiscountAmount(request.getDiscountAmount());
         quote.setRemark(request.getRemark());
 
-        // 更新明细：先删除旧明细，再添加新明细
+        // 更新明细：先删除旧明细，再从后端 B 拉真实 SKU 信息重建
         quoteItemRepository.deleteByQuoteId(id);
-        List<SalesQuoteItem> newItems = new ArrayList<>();
         for (QuoteItemRequest itemReq : request.getItems()) {
+            SkuPricingVo pricing = skuQueryService.getForPricing(itemReq.getSkuId());
+
             SalesQuoteItem item = new SalesQuoteItem();
-            item.setSkuId(itemReq.getSkuId());
-            item.setSkuNameSnapshot("商品名称快照");
+            item.setSkuId(pricing.getSkuId());
+            item.setSkuNameSnapshot(pricing.getSkuName());
             item.setQty(itemReq.getQty());
-            item.setOriginUnitPrice(new BigDecimal("100.00"));
+            item.setOriginUnitPrice(pricing.getSalePrice());
             item.setDiscountRate(itemReq.getDiscountRate());
-            item.setTaxRate(new BigDecimal("13.00"));
+            item.setTaxRate(pricing.getTaxRate());
             item.setRemark(itemReq.getRemark());
             item.calculateLineAmount();
             quote.addItem(item);

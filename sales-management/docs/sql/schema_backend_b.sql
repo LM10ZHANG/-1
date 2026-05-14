@@ -231,3 +231,75 @@ INSERT INTO `sys_dict_item` (`dict_code`, `item_value`, `item_label`, `sort_no`,
     ('PRODUCT_UNIT',    'PCS',   '件', 1, 1, NOW()),
     ('PRODUCT_UNIT',    'BOX',   '箱', 2, 1, NOW()),
     ('PRODUCT_UNIT',    'KG',    '千克', 3, 1, NOW());
+
+-- ============================================================================
+-- 三、追加菜单数据（与 schema_backend_a.sql 中的菜单合并使用）
+--    后端 A 的 sys_menu 初始化不包含 客户/商品/字典 菜单，本节予以补齐。
+--    实际项目启动会由 MasterDataInitializer.java 自动幂等灌入；
+--    如果直连 MySQL 离线建库，可执行下面 SQL 一次性导入。
+-- ============================================================================
+INSERT INTO `sys_menu`
+(`parent_id`, `menu_name`, `menu_type`, `path`, `component`, `permission_code`, `sort_no`, `status`, `created_at`, `deleted_flag`)
+VALUES
+-- 客户中心
+(0, '客户中心', 'MENU',   '/customer',           NULL, NULL,                       400, 1, NOW(), 0),
+(LAST_INSERT_ID(), '客户列表',     'MENU',   '/customer/list',      NULL, 'customer:list',            410, 1, NOW(), 0),
+(@root_customer := LAST_INSERT_ID() - 1, '新增客户', 'BUTTON', NULL,             NULL, 'customer:create',          411, 1, NOW(), 0),
+(@root_customer, '编辑客户',  'BUTTON', NULL,                  NULL, 'customer:update',          412, 1, NOW(), 0),
+(@root_customer, '客户状态',  'BUTTON', NULL,                  NULL, 'customer:status',          413, 1, NOW(), 0),
+(@root_customer, '删除客户',  'BUTTON', NULL,                  NULL, 'customer:delete',          414, 1, NOW(), 0),
+(@root_customer, '客户详情',  'MENU',   '/customer/detail',    NULL, 'customer:detail',          415, 1, NOW(), 0),
+(@root_customer, '联系人管理','BUTTON', NULL,                  NULL, 'customer:contact:manage',  416, 1, NOW(), 0),
+(@root_customer, '新增跟进',  'BUTTON', NULL,                  NULL, 'customer:followup:create', 417, 1, NOW(), 0),
+(@root_customer, '跟进记录',  'MENU',   '/customer/followups', NULL, 'customer:followup:list',   418, 1, NOW(), 0),
+-- 商品中心
+(0, '商品中心', 'MENU', '/product', NULL, NULL, 500, 1, NOW(), 0),
+(@root_product := LAST_INSERT_ID(), 'SPU 列表', 'MENU', '/product/spu', NULL, 'product:spu:list', 510, 1, NOW(), 0),
+(@root_product, '新增 SPU', 'BUTTON', NULL, NULL, 'product:spu:create', 511, 1, NOW(), 0),
+(@root_product, '编辑 SPU', 'BUTTON', NULL, NULL, 'product:spu:update', 512, 1, NOW(), 0),
+(@root_product, 'SKU 列表', 'MENU',   '/product/sku', NULL, 'product:sku:list', 520, 1, NOW(), 0),
+(@root_product, '新增 SKU', 'BUTTON', NULL, NULL, 'product:sku:create', 521, 1, NOW(), 0),
+(@root_product, '编辑 SKU', 'BUTTON', NULL, NULL, 'product:sku:update', 522, 1, NOW(), 0),
+(@root_product, 'SKU 状态', 'BUTTON', NULL, NULL, 'product:sku:status', 523, 1, NOW(), 0),
+(@root_product, '商品分类', 'MENU',   '/product/categories', NULL, 'product:category:list',   530, 1, NOW(), 0),
+(@root_product, '新增分类', 'BUTTON', NULL, NULL, 'product:category:create', 531, 1, NOW(), 0),
+(@root_product, '编辑分类', 'BUTTON', NULL, NULL, 'product:category:update', 532, 1, NOW(), 0);
+
+-- 字典管理挂在"系统管理"下（id=1，与 schema_backend_a.sql 保持一致）
+INSERT INTO `sys_menu`
+(`parent_id`, `menu_name`, `menu_type`, `path`, `component`, `permission_code`, `sort_no`, `status`, `created_at`, `deleted_flag`)
+VALUES
+(1, '字典管理',   'MENU',   '/system/dicts', NULL, 'system:dict:list',   50, 1, NOW(), 0),
+(1, '新增字典',   'BUTTON', NULL,            NULL, 'system:dict:create', 51, 1, NOW(), 0),
+(1, '编辑字典',   'BUTTON', NULL,            NULL, 'system:dict:update', 52, 1, NOW(), 0),
+(1, '字典项管理', 'BUTTON', NULL,            NULL, 'system:dict:item',   53, 1, NOW(), 0);
+
+-- 角色 - 菜单授权（ADMIN 已通过 schema_backend_a.sql 全量授权，这里只补销售员/销售经理）
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`)
+SELECT 1, m.id FROM `sys_menu` m
+WHERE m.permission_code IN (
+    'customer:list','customer:create','customer:update','customer:status','customer:delete',
+    'customer:detail','customer:contact:manage','customer:followup:create','customer:followup:list',
+    'product:spu:list','product:spu:create','product:spu:update',
+    'product:sku:list','product:sku:create','product:sku:update','product:sku:status',
+    'product:category:list','product:category:create','product:category:update',
+    'system:dict:list','system:dict:create','system:dict:update','system:dict:item'
+);
+
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`)
+SELECT 2, m.id FROM `sys_menu` m  -- 销售员 SALES
+WHERE m.permission_code IN (
+    'customer:list','customer:create','customer:update','customer:status',
+    'customer:detail','customer:contact:manage','customer:followup:create','customer:followup:list',
+    'product:spu:list','product:sku:list','product:category:list'
+);
+
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`)
+SELECT 3, m.id FROM `sys_menu` m  -- 销售经理 SALES_MANAGER
+WHERE m.permission_code IN (
+    'customer:list','customer:create','customer:update','customer:status','customer:delete',
+    'customer:detail','customer:contact:manage','customer:followup:create','customer:followup:list',
+    'product:spu:list','product:spu:create','product:spu:update',
+    'product:sku:list','product:sku:create','product:sku:update','product:sku:status',
+    'product:category:list','product:category:create','product:category:update'
+);

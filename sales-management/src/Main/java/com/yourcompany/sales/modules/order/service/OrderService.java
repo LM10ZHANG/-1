@@ -3,11 +3,14 @@ package com.yourcompany.sales.modules.order.service;
 import com.yourcompany.sales.common.enums.OrderStatus;
 import com.yourcompany.sales.common.enums.PaymentStatus;
 import com.yourcompany.sales.common.exception.BusinessException;
+import com.yourcompany.sales.modules.customer.service.CustomerQueryService;
 import com.yourcompany.sales.modules.order.dto.*;
 import com.yourcompany.sales.modules.order.entity.SalesOrder;
 import com.yourcompany.sales.modules.order.entity.SalesOrderItem;
 import com.yourcompany.sales.modules.order.repository.OrderItemRepository;
 import com.yourcompany.sales.modules.order.repository.OrderRepository;
+import com.yourcompany.sales.modules.product.dto.SkuPricingVo;
+import com.yourcompany.sales.modules.product.service.SkuQueryService;
 import com.yourcompany.sales.utils.BeanCopyUtils;
 import com.yourcompany.sales.utils.CodeGenerator;
 import com.yourcompany.sales.utils.SecurityUtils;
@@ -31,8 +34,15 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CodeGenerator codeGenerator;
 
+    // 后端 B 提供的主数据查询服务
+    private final CustomerQueryService customerQueryService;
+    private final SkuQueryService skuQueryService;
+
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
+        // 校验客户存在且未禁用（后端 B 提供）
+        customerQueryService.requireActive(request.getCustomerId());
+
         SalesOrder order = new SalesOrder();
         order.setOrderNo(codeGenerator.generateOrderNo());
         order.setQuoteId(request.getQuoteId());
@@ -47,14 +57,16 @@ public class OrderService {
         order.setPaymentStatus(PaymentStatus.UNPAID);
         order.setOwnerUserId(SecurityUtils.getCurrentUserId());
 
-        List<SalesOrderItem> items = new ArrayList<>();
         for (OrderItemRequest itemReq : request.getItems()) {
+            // 从后端 B 拉真实的 SKU 名称/价格/税率（停用 SKU 会直接抛业务异常）
+            SkuPricingVo pricing = skuQueryService.getForPricing(itemReq.getSkuId());
+
             SalesOrderItem item = new SalesOrderItem();
-            item.setSkuId(itemReq.getSkuId());
-            item.setSkuNameSnapshot("商品快照");
+            item.setSkuId(pricing.getSkuId());
+            item.setSkuNameSnapshot(pricing.getSkuName());
             item.setQty(itemReq.getQty());
-            item.setUnitPrice(new BigDecimal("100.00"));
-            item.setTaxRate(new BigDecimal("13.00"));
+            item.setUnitPrice(pricing.getSalePrice());
+            item.setTaxRate(pricing.getTaxRate());
             item.setDiscountRate(itemReq.getDiscountRate());
             item.calculateLineAmount();
             item.setLockedQty(0);
@@ -87,12 +99,14 @@ public class OrderService {
         orderItemRepository.deleteByOrderId(id);
         order.getItems().clear();
         for (OrderItemRequest itemReq : request.getItems()) {
+            SkuPricingVo pricing = skuQueryService.getForPricing(itemReq.getSkuId());
+
             SalesOrderItem item = new SalesOrderItem();
-            item.setSkuId(itemReq.getSkuId());
-            item.setSkuNameSnapshot("商品快照");
+            item.setSkuId(pricing.getSkuId());
+            item.setSkuNameSnapshot(pricing.getSkuName());
             item.setQty(itemReq.getQty());
-            item.setUnitPrice(new BigDecimal("100.00"));
-            item.setTaxRate(new BigDecimal("13.00"));
+            item.setUnitPrice(pricing.getSalePrice());
+            item.setTaxRate(pricing.getTaxRate());
             item.setDiscountRate(itemReq.getDiscountRate());
             item.calculateLineAmount();
             order.addItem(item);

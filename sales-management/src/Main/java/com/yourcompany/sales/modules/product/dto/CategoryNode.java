@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Builder.Default;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,5 +32,6 @@ public class CategoryNode {
 
     private String remark;
 
+    @Default
     private List<CategoryNode> children = new ArrayList<>();
 }
