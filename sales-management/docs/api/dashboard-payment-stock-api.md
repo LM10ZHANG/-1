@@ -2,8 +2,7 @@
 
 ## 1. 说明
 
-当前项目这三类接口都已经存在，但响应包装不完全统一：
-
+当前项目这三类接口已经具备基础能力，但响应包装并不完全统一：
 - `dashboard`、`reports` 使用 `ApiResponse`
 - `payment`、`stock`、`outbound` 使用 `Result`
 
@@ -19,11 +18,54 @@
 
 `ApiResponse` 额外可能带有 `timestamp`、`traceId`。
 
-## 2. Dashboard 模块
+## 2. 权限总览
 
-### 2.1 GET `/api/dashboard/overview`
+### 2.1 角色与模块
+
+| 角色编码 | 角色名称 | 可访问模块 |
+| --- | --- | --- |
+| `ADMIN` | 系统管理员 | 全部 |
+| `SALES` | 销售员 | `dashboard` 基础看板 |
+| `SALES_MANAGER` | 销售经理 | `dashboard` 全部接口 |
+| `WAREHOUSE` | 仓库人员 | `stock`、`outbound` |
+| `FINANCE` | 财务人员 | `payment` |
+| `BOSS` | 老板 | `dashboard` 全部接口 |
+
+### 2.2 权限码
+
+| 权限码 | 说明 |
+| --- | --- |
+| `dashboard:overview` | 首页看板 |
+| `dashboard:rankings` | 销售排行 |
+| `dashboard:warnings` | 系统预警 |
+| `dashboard:trend` | 销售趋势 |
+| `payment:list` | 收款记录列表 |
+| `payment:create` | 新增收款 |
+| `receivable:list` | 应收账款列表 |
+| `invoice:list` | 发票列表 |
+| `invoice:create` | 新增发票 |
+| `refund:list` | 退款列表 |
+| `refund:create` | 发起退款 |
+| `refund:finish` | 完成退款 |
+| `refund:reject` | 驳回退款 |
+| `stock:list` | 库存台账列表 |
+| `stock:detail` | 库存详情 |
+| `stock:lock` | 锁定库存 |
+| `stock:release` | 释放库存 |
+| `outbound:list` | 出库单列表 |
+| `outbound:create` | 执行出库 |
+| `outbound:detail` | 出库详情 |
+| `stock:return:inbound` | 退货入库 |
+
+## 3. Dashboard 模块
+
+### 3.1 GET `/api/dashboard/overview`
 
 用途：经营概览。
+
+权限：`dashboard:overview`
+
+建议角色：`SALES`、`SALES_MANAGER`、`BOSS`、`ADMIN`
 
 请求参数：
 
@@ -44,16 +86,19 @@
 | `monthOrderAmount` | decimal | 本月订单额 |
 | `monthPaymentAmount` | decimal | 本月回款额 |
 | `orderCompletionRate` | decimal | 订单完成率 |
-| `roleView` | string | 当前写死为 `BOSS` |
+| `roleView` | string | 当前实现固定返回 `BOSS` |
 
 业务说明：
-
 - 本月订单额、本月回款额固定按“本月”统计。
 - 订单完成率按选定时间范围内 `completedOrders / totalOrders` 计算。
 
-### 2.2 GET `/api/dashboard/rankings`
+### 3.2 GET `/api/dashboard/rankings`
 
 用途：排行榜。
+
+权限：`dashboard:rankings`
+
+建议角色：`SALES`、`SALES_MANAGER`、`BOSS`、`ADMIN`
 
 请求参数：
 
@@ -87,14 +132,17 @@
 | `rankNo` | int | 排名 |
 
 业务说明：
-
 - `SALES` 按订单 `ownerUserId` 汇总。
 - `PRODUCT` 按订单明细 SKU 汇总。
 - `CUSTOMER` 按客户成交金额汇总。
 
-### 2.3 GET `/api/dashboard/warnings`
+### 3.3 GET `/api/dashboard/warnings`
 
 用途：预警列表。
+
+权限：`dashboard:warnings`
+
+建议角色：`SALES`、`SALES_MANAGER`、`BOSS`、`ADMIN`
 
 请求参数：
 
@@ -121,9 +169,13 @@
 | `warningType` | string | 预警类型 |
 | `warningMessage` | string | 预警信息 |
 
-### 2.4 GET `/api/reports/sales-trend`
+### 3.4 GET `/api/reports/sales-trend`
 
 用途：销售趋势图。
+
+权限：`dashboard:trend`
+
+建议角色：`SALES_MANAGER`、`BOSS`、`ADMIN`
 
 请求参数：
 
@@ -141,11 +193,15 @@
 | `orderAmount` | decimal | 当日订单金额 |
 | `paymentAmount` | decimal | 当日有效收款金额 |
 
-## 3. Payment 模块
+## 4. Payment 模块
 
-### 3.1 GET `/api/payments`
+### 4.1 GET `/api/payments`
 
 用途：分页查询收款记录。
+
+权限：`payment:list`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求参数：
 
@@ -179,9 +235,13 @@
 | `status` | string | 状态 |
 | `remark` | string | 备注 |
 
-### 3.2 POST `/api/payments`
+### 4.2 POST `/api/payments`
 
 用途：登记收款。
+
+权限：`payment:create`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求体：
 
@@ -199,16 +259,19 @@
 ```
 
 关键规则：
-
 - `orderId`、`customerId` 不能为空。
 - `payAmount` 必须大于 `0`。
 - 收款客户必须和订单客户一致。
 - 累计净收款不得超过订单总金额。
 - 成功后会回写订单 `paidAmount` 和 `paymentStatus`。
 
-### 3.3 GET `/api/receivables`
+### 4.3 GET `/api/receivables`
 
 用途：应收账款查询。
+
+权限：`receivable:list`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求参数：
 
@@ -240,9 +303,13 @@
 | `overdueDays` | long | 逾期天数 |
 | `riskLevel` | string | `LOW`、`MEDIUM`、`HIGH` |
 
-### 3.4 GET `/api/invoices`
+### 4.4 GET `/api/invoices`
 
 用途：分页查询发票。
+
+权限：`invoice:list`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求参数：
 
@@ -269,9 +336,13 @@
 | `invoiceStatus` | string | 开票状态 |
 | `invoiceDate` | date | 开票日期 |
 
-### 3.5 POST `/api/invoices`
+### 4.5 POST `/api/invoices`
 
 用途：新增发票。
+
+权限：`invoice:create`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求体：
 
@@ -287,15 +358,18 @@
 ```
 
 关键规则：
-
 - `orderId` 不能为空。
 - `invoiceAmount` 必须大于 `0`。
 - 累计开票金额不得超过订单总金额。
 - `invoiceStatus` 为空时默认写入 `ISSUED`。
 
-### 3.6 GET `/api/refunds`
+### 4.6 GET `/api/refunds`
 
 用途：分页查询退款单。
+
+权限：`refund:list`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求参数：
 
@@ -323,9 +397,13 @@
 | `status` | string | 状态 |
 | `createdAt` | datetime | 创建时间 |
 
-### 3.7 POST `/api/refunds`
+### 4.7 POST `/api/refunds`
 
 用途：创建退款单。
+
+权限：`refund:create`
+
+建议角色：`FINANCE`、`ADMIN`
 
 请求体：
 
@@ -340,37 +418,46 @@
 ```
 
 关键规则：
-
 - `refundAmount` 必须大于 `0`。
 - `paymentId` 必须存在且原收款状态必须是 `VALID`。
 - 退款单中的 `orderId` 必须与原收款记录一致。
 - 累计完成退款金额不得超过原收款金额。
 - 新建后的初始状态为 `WAIT`。
 
-### 3.8 POST `/api/refunds/{id}/finish`
+### 4.8 POST `/api/refunds/{id}/finish`
 
 用途：完成退款。
 
-关键规则：
+权限：`refund:finish`
 
+建议角色：`FINANCE`、`ADMIN`
+
+关键规则：
 - 只有 `WAIT` 状态可以完成。
 - 完成后状态变为 `FINISHED`。
 - 完成后会重新回写订单净收款与付款状态。
 
-### 3.9 POST `/api/refunds/{id}/reject`
+### 4.9 POST `/api/refunds/{id}/reject`
 
 用途：驳回退款。
 
-关键规则：
+权限：`refund:reject`
 
+建议角色：`FINANCE`、`ADMIN`
+
+关键规则：
 - 只有 `WAIT` 状态可以驳回。
 - 驳回后状态变为 `REJECTED`。
 
-## 4. Stock 模块
+## 5. Stock 模块
 
-### 4.1 GET `/api/stocks`
+### 5.1 GET `/api/stocks`
 
 用途：分页查询库存台账。
+
+权限：`stock:list`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求参数：
 
@@ -380,8 +467,8 @@
 | `pageSize` | int | 否 | 默认 `10` |
 | `warehouseId` | long | 否 | 仓库ID |
 | `skuId` | long | 否 | SKU ID |
-| `skuCode` | string | 否 | SKU编码，模糊匹配 |
-| `skuName` | string | 否 | SKU名称，模糊匹配 |
+| `skuCode` | string | 否 | SKU 编码，模糊匹配 |
+| `skuName` | string | 否 | SKU 名称，模糊匹配 |
 | `lowStockOnly` | boolean | 否 | 是否只看低库存 |
 
 返回列表项：
@@ -392,8 +479,8 @@
 | `warehouseId` | long | 仓库ID |
 | `warehouseName` | string | 当前实现为 `仓库-{warehouseId}` |
 | `skuId` | long | SKU ID |
-| `skuCode` | string | SKU编码 |
-| `skuName` | string | SKU名称 |
+| `skuCode` | string | SKU 编码 |
+| `skuName` | string | SKU 名称 |
 | `totalQty` | int | 总库存 |
 | `availableQty` | int | 可用库存 |
 | `lockedQty` | int | 锁定库存 |
@@ -401,9 +488,13 @@
 | `lowStock` | boolean | 是否低库存 |
 | `updatedAt` | datetime | 更新时间 |
 
-### 4.2 GET `/api/stocks/{id}`
+### 5.2 GET `/api/stocks/{id}`
 
 用途：库存详情。
+
+权限：`stock:detail`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 返回 `data` 字段：
 
@@ -431,9 +522,13 @@
 | `operatorUserId` | long | 操作人 |
 | `createdAt` | datetime | 创建时间 |
 
-### 4.3 POST `/api/stocks/lock`
+### 5.3 POST `/api/stocks/lock`
 
 用途：订单锁库存。
+
+权限：`stock:lock`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求体：
 
@@ -453,16 +548,19 @@
 ```
 
 关键规则：
-
 - `quantity` 必须大于 `0`。
 - 锁定量不能超过库存可用量。
 - 锁定量不能导致 `已锁 + 已出库 + 本次锁定 > 订单数量`。
 - 成功后库存 `availableQty` 减少、`lockedQty` 增加。
 - 成功后订单明细 `lockedQty` 回写，订单可能进入 `WAIT_OUTBOUND`。
 
-### 4.4 POST `/api/stocks/release`
+### 5.4 POST `/api/stocks/release`
 
 用途：释放已锁库存。
+
+权限：`stock:release`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求体：
 
@@ -482,14 +580,17 @@
 ```
 
 关键规则：
-
 - `quantity` 必须大于 `0`。
 - 释放量不能大于当前已锁数量。
 - 成功后库存 `lockedQty` 减少、`availableQty` 增加。
 
-### 4.5 POST `/api/outbound-orders`
+### 5.5 POST `/api/outbound-orders`
 
 用途：执行出库。
+
+权限：`outbound:create`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求体：
 
@@ -510,7 +611,6 @@
 ```
 
 关键规则：
-
 - 订单状态必须允许出库，当前代码要求为 `WAIT_OUTBOUND`。
 - `quantity` 必须大于 `0`。
 - 出库量不能大于订单已锁数量。
@@ -518,9 +618,13 @@
 - 成功后库存 `lockedQty` 减少、`totalQty` 减少。
 - 成功后订单明细 `outboundQty` 增加。
 
-### 4.6 GET `/api/outbound-orders`
+### 5.6 GET `/api/outbound-orders`
 
 用途：分页查询出库单。
+
+权限：`outbound:list`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求参数：
 
@@ -547,9 +651,13 @@
 | `remark` | string | 备注 |
 | `outboundTime` | datetime | 出库时间 |
 
-### 4.7 GET `/api/outbound-orders/{id}`
+### 5.7 GET `/api/outbound-orders/{id}`
 
 用途：出库单详情。
+
+权限：`outbound:detail`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 返回 `data` 字段：
 
@@ -567,9 +675,13 @@
 | `skuId` | long | SKU ID |
 | `outboundQty` | int | 出库数量 |
 
-### 4.8 POST `/api/returns/inbound`
+### 5.8 POST `/api/returns/inbound`
 
 用途：退货入库。
+
+权限：`stock:return:inbound`
+
+建议角色：`WAREHOUSE`、`ADMIN`
 
 请求体：
 
@@ -591,13 +703,12 @@
 ```
 
 关键规则：
-
 - `quantity` 必须大于 `0`。
 - 成功后库存 `totalQty`、`availableQty` 增加。
 - 会落一条 `RETURN_INBOUND` 库存变更记录。
 
-## 5. 联调提醒
+## 6. 联调提醒
 
 1. `dashboard` 页码参数用 `page`，且从 `0` 开始；`payment/stock` 用 `pageNum`，且从 `1` 开始。
 2. 当前仓库并没有把所有需求文档中的接口都补全，比如订单分页列表仍是 TODO，但 `dashboard/payment/stock` 本身的主接口已具备。
-3. 由于后端A未收口，测试报告里应把“权限缺失”和“业务错误”分开记录。
+3. 测试报告里建议把“权限缺失”和“业务错误”分开记录，因为这两类报错处理路径不同。

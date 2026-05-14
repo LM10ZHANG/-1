@@ -14,6 +14,7 @@ import com.yourcompany.sales.modules.payment.dto.PaymentResponse;
 import com.yourcompany.sales.modules.payment.service.FinanceService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -23,12 +24,14 @@ public class PaymentController {
     private final FinanceService financeService;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('payment:create')")
     public Result<Void> create(@RequestBody PaymentRequest req) {
         financeService.createPayment(req);
         return Result.success();
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('payment:list')")
     public Result<PageResponse<PaymentResponse>> list(PaymentQueryRequest req) {
         return Result.success(financeService.pagePayments(req));
     }

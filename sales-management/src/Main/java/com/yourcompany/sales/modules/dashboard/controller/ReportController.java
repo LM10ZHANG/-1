@@ -12,6 +12,7 @@ import com.yourcompany.sales.modules.dashboard.dto.DashboardQuery;
 import com.yourcompany.sales.modules.dashboard.service.DashboardService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -21,6 +22,7 @@ public class ReportController {
     private final DashboardService dashboardService;
 
     @GetMapping("/sales-trend")
+    @PreAuthorize("hasAuthority('dashboard:trend')")
     public ApiResponse<List<SalesTrendVO>> salesTrend(DashboardQuery query) {
         return ApiResponse.success(dashboardService.getSalesTrend(query));
     }

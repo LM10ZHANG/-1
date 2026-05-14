@@ -14,6 +14,7 @@ import com.yourcompany.sales.modules.payment.dto.InvoiceResponse;
 import com.yourcompany.sales.modules.payment.service.FinanceService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/invoices")
@@ -23,11 +24,13 @@ public class InvoiceController {
     private final FinanceService financeService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('invoice:list')")
     public Result<PageResponse<InvoiceResponse>> list(InvoiceQueryRequest req) {
         return Result.success(financeService.pageInvoices(req));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('invoice:create')")
     public Result<Void> create(@RequestBody InvoiceRequest req) {
         financeService.createInvoice(req);
         return Result.success();

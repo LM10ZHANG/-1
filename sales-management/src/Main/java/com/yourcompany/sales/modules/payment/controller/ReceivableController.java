@@ -11,6 +11,7 @@ import com.yourcompany.sales.modules.payment.dto.ReceivableResponse;
 import com.yourcompany.sales.modules.payment.service.FinanceService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/receivables")
@@ -20,6 +21,7 @@ public class ReceivableController {
     private final FinanceService financeService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('receivable:list')")
     public Result<PageResponse<ReceivableResponse>> list(ReceivableQueryRequest req) {
         return Result.success(financeService.pageReceivables(req));
     }

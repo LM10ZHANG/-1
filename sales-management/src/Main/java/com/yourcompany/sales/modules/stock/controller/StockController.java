@@ -17,6 +17,7 @@ import com.yourcompany.sales.modules.stock.dto.StockResponse;
 import com.yourcompany.sales.modules.stock.service.StockService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/stocks")
@@ -26,22 +27,26 @@ public class StockController {
     private final StockService stockService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('stock:list')")
     public Result<PageResponse<StockResponse>> list(StockQueryRequest req) {
         return Result.success(stockService.pageStocks(req));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('stock:detail')")
     public Result<StockDetailResponse> detail(@PathVariable Long id) {
         return Result.success(stockService.getStockDetail(id));
     }
 
     @PostMapping("/lock")
+    @PreAuthorize("hasAuthority('stock:lock')")
     public Result<Void> lock(@RequestBody StockLockRequest req) {
         stockService.lockStock(req);
         return Result.success();
     }
 
     @PostMapping("/release")
+    @PreAuthorize("hasAuthority('stock:release')")
     public Result<Void> release(@RequestBody StockReleaseRequest req) {
         stockService.releaseStock(req);
         return Result.success();

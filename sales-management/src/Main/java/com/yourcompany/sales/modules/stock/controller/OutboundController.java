@@ -16,6 +16,7 @@ import com.yourcompany.sales.modules.stock.dto.ReturnRequest;
 import com.yourcompany.sales.modules.stock.service.StockService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,22 +25,26 @@ public class OutboundController {
     private final StockService stockService;
 
     @PostMapping("/api/outbound-orders")
+    @PreAuthorize("hasAuthority('outbound:create')")
     public Result<Void> outbound(@RequestBody OutboundRequest req) {
         stockService.outbound(req);
         return Result.success();
     }
 
     @GetMapping("/api/outbound-orders")
+    @PreAuthorize("hasAuthority('outbound:list')")
     public Result<PageResponse<OutboundResponse>> pageOutboundOrders(OutboundQueryRequest req) {
         return Result.success(stockService.pageOutboundOrders(req));
     }
 
     @GetMapping("/api/outbound-orders/{id}")
+    @PreAuthorize("hasAuthority('outbound:detail')")
     public Result<OutboundDetailResponse> outboundDetail(@PathVariable Long id) {
         return Result.success(stockService.getOutboundDetail(id));
     }
 
     @PostMapping("/api/returns/inbound")
+    @PreAuthorize("hasAuthority('stock:return:inbound')")
     public Result<Void> returnInbound(@RequestBody ReturnRequest req) {
         stockService.returnInbound(req);
         return Result.success();

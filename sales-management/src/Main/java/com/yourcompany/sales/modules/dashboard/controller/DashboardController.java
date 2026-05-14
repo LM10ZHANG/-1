@@ -15,6 +15,7 @@ import com.yourcompany.sales.modules.dashboard.enums.RankingType;
 import com.yourcompany.sales.modules.dashboard.service.DashboardService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/dashboard")
@@ -24,11 +25,13 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/overview")
+    @PreAuthorize("hasAuthority('dashboard:overview')")
     public ApiResponse<DashboardOverviewVO> overview(DashboardQuery query) {
         return ApiResponse.success(dashboardService.getOverview(query));
     }
 
     @GetMapping("/rankings")
+    @PreAuthorize("hasAuthority('dashboard:rankings')")
     public ApiResponse<PageResponse<RankingItemVO>> rankings(
             DashboardQuery query,
             @RequestParam RankingType type,
@@ -38,6 +41,7 @@ public class DashboardController {
     }
 
     @GetMapping("/warnings")
+    @PreAuthorize("hasAuthority('dashboard:warnings')")
     public ApiResponse<DashboardWarningsVO> warnings(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
